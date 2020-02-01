@@ -16,6 +16,7 @@
 #include <iostream> // cout, clog, cerr, etc.
 #include <map> // mapping node id's
 #include <string> // filenames etc.
+#include "omp.h" // openMP paralellization
 #include <queue> // BFS
 #include <stack> // DFS
 #include <vector> // node data structure
