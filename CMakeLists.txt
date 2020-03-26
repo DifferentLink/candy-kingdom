@@ -53,7 +53,7 @@
 
 
 project(Candy)
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.9)
 
 # Temporary solution for shared lib
 #set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -249,6 +249,14 @@ if (${ZLIB_FOUND})
 else (${ZLIB_FOUND})
    message(FATAL_ERROR "Could not find zlib.")
 endif (${ZLIB_FOUND})
+
+find_package(OpenMP REQUIRED)
+if (OPENMP_FOUND)
+    message("OPENMP FOUND")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif (OPENMP_FOUND)
 
 
 ### Custom functions

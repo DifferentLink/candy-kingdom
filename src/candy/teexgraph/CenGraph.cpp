@@ -166,20 +166,25 @@ vector<double> Graph::eccentricityCentrality(const Scope scope = FULL) {
 vector<double> Graph::betweennessCentrality(const Scope scope = FULL, const double samplesize = 1.0) {
 
     if(!isUndirected() || scope == LSCC || nodes(scope) < 2) {
-        cerr << "Betweenness centrality is only implemented for undirected graphs. Valid scopes are FULL and LWCC." << endl;
+        //cerr << "Betweenness centrality is only implemented for undirected graphs. Valid scopes are FULL and LWCC." << endl;
         return vector<double>(nodes(FULL), -1);
     }
 
-    vector<long double> doublelongarray(vector<long double>(nodes(FULL), 0));
+    const int cpus = omp_get_num_procs();
+    int tid;
+    vector< vector<long double> > doublelongarray(cpus, vector<long double>(nodes(FULL), 0));
     int until = nodes(scope);
     if(samplesize < 1.0)
         until = (double) nodes(FULL) * samplesize;
     int prevs = -1;
 
-    // clog << "Computing betweenness values (based on a " << samplesize * 100
-    //         << "% sample of " << until << " nodes)" << endl;
+    //clog << "Computing betweenness values (based on a " << samplesize * 100
+    //        << "% sample of " << until << " nodes) with " << cpus << " CPUs..." << endl;
 
+#pragma omp parallel for schedule(dynamic, 1) private(tid)
     for(int s = 0; s < until; s++) {
+        tid = omp_get_thread_num();
+
         vector<double> sp;
         vector<int> d;
         vector< vector<int> > P(nodes(FULL));
@@ -188,8 +193,8 @@ vector<double> Graph::betweennessCentrality(const Scope scope = FULL, const doub
         stack<int> S;
         int v, w;
 
-        // if(s % max(1, until / 20) == 0) // show status % without div by 0 errors
-        //      clog << " " << s / max(1, until / 100) << "%";
+        //if(s % max(1, until / 20) == 0) // show status % without div by 0 errors
+        //    clog << " " << s / max(1, until / 100) << "%";
 
         if(samplesize < 1.0) {
             prevs = s;
@@ -234,7 +239,7 @@ vector<double> Graph::betweennessCentrality(const Scope scope = FULL, const doub
                 delta[v] += ((double) sp[v] / (double) sp[w])*(1.0 + delta[w]);
             }
             if(w != s)
-                doublelongarray[w] += (long double) delta[w];
+                doublelongarray[tid][w] += (long double) delta[w];
         }
 
         if(samplesize < 1.0) {
@@ -242,12 +247,14 @@ vector<double> Graph::betweennessCentrality(const Scope scope = FULL, const doub
         }
 
     }
-    // clog << endl;
 
+    // merge all cpu results
     long double maxval = 0;
     vector<long double> totals(nodes(FULL), 0);
     for(int i = 0; i < nodes(FULL); i++) {
-        totals[i] += (double) doublelongarray[i];
+        for(int j = 0; j < cpus; j++) {
+            totals[i] += (double) doublelongarray[j][i];
+        }
         maxval = max(maxval, totals[i]);
     }
 

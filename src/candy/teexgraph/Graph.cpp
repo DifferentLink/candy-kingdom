@@ -124,6 +124,7 @@ void Graph::sortEdgeList() {
     int removed = 0, begin;
     if(!sortedandunique) {
         m = 0;
+														   
         for(int i = 0; i < n; i++) {
             sort(E[i].begin(), E[i].end());
             begin = E[i].size();
@@ -139,6 +140,7 @@ void Graph::sortEdgeList() {
         //     clog << "- Total of " << removed << " parallel edges have been removed." << endl;
         // clog << "Sorting done." << endl;
     } 
+											
 } // sortEdgeList
 
 
@@ -497,6 +499,7 @@ vector<double> Graph::localClustering(const Scope scope = FULL) {
 
     double temp;
 
+#pragma omp parallel for schedule(dynamic, 1) private(temp)
     for(int i = 0; i < n; i++) {
         if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
             clog << " " << i / max(1, n / 100) << "%";
@@ -505,7 +508,7 @@ vector<double> Graph::localClustering(const Scope scope = FULL) {
             temparray[i] = temp;
         }
     }
-    // clog << " Done." << endl;
+    //clog << " Done." << endl;
 
     return temparray;
 } // localClustering
@@ -527,33 +530,47 @@ double Graph::averageClusteringCoefficient(const Scope scope = FULL) {
 
 // get triangle count (ignoring direction)
 long Graph::triangles(const Scope scope) {
+    long grandtotal = 0;
+    int tid;
     pair<long, long> result;
-    long total = 0;
+    const int cpus = omp_get_num_procs();
+    vector<long> total(cpus, 0);
+#pragma omp parallel for schedule(dynamic, 1) private(tid,result)
     for(int i = 0; i < n; i++) 
         if(inScope(i, scope)) {	
-        	if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
-            	clog << " " << i / max(1, n / 100) << "%";
+        	//if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
+            //	clog << " " << i / max(1, n / 100) << "%";
+        	tid = omp_get_thread_num();
        		result = trianglesWedgesAround(i);
-        	total += result.first;
+        	total[tid] += result.first;
     	}
-    // clog << " Done." << endl;
-    return total / 3;
+    //clog << " Done." << endl;
+    for(int i = 0; i < cpus; i++)
+        grandtotal += total[i];
+    return grandtotal / 3;
 } // triangles
 
 
 // get wedge count (ignoring direction)
 long Graph::wedges(const Scope scope) {
+    long grandtotal = 0;
+    int tid;
     pair<long, long> result;
-    long total = 0;
+    const int cpus = omp_get_num_procs();
+    vector<long> total(cpus, 0);
+#pragma omp parallel for schedule(dynamic, 1) private(tid,result)
     for(int i = 0; i < n; i++) 
         if(inScope(i, scope)) {	
-            if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
-            clog << " " << i / max(1, n / 100) << "%";
+            //if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
+            //clog << " " << i / max(1, n / 100) << "%";
+     	   tid = omp_get_thread_num();
      	   result = trianglesWedgesAround(i);
-     	   total += result.second;
+     	   total[tid] += result.second;
     	}
-    // clog << " Done." << endl;
-    return total;
+    //clog << " Done." << endl;
+    for(int i = 0; i < cpus; i++)
+        grandtotal += total[i];
+    return grandtotal;
 } // wedges
 
 
@@ -593,21 +610,29 @@ pair<long, long> Graph::trianglesWedgesAround(const int u) {
 
 // compute the graph's clustering coefficient: triangles*3/possible triangles
 double Graph::graphClusteringCoefficient(const Scope scope = FULL) {
+    long double totaltriangles = 0, totalwedges = 0;
+    int tid;
     pair<long, long> result;
-    long double triangles = 0;
-    long double wedges = 0;
+    const int cpus = omp_get_num_procs();
+    vector<long double> triangles(cpus, 0);
+    vector<long double> wedges(cpus, 0);
+#pragma omp parallel for schedule(dynamic, 1) private(tid,result)             
     for(int i = 0; i < n; i++) {
-        if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
-            clog << " " << i / max(1, n / 100) << "%";
+        //if(i % max(1, n / 20) == 0) // show status % without div by 0 errors
+        //    clog << " " << i / max(1, n / 100) << "%";
         if(inScope(i, scope)) {
+            tid = omp_get_thread_num();
             result = trianglesWedgesAround(i);
-            triangles += result.first;
-            wedges += result.second;
+            triangles[tid] += result.first;
+            wedges[tid] += result.second;
         }
     }
     // clog << " Done." << endl;
-
-    return triangles / wedges;
+    for(int i = 0; i < cpus; i++) {
+        totaltriangles += triangles[i];
+        totalwedges += wedges[i];
+    }
+    return totaltriangles / totalwedges;
 } // graphClusteringCoefficient
 
 
@@ -644,6 +669,7 @@ vector<long> Graph::indegreeDistribution(const Scope scope = FULL) {
     //clog << "Indegree distribution printed." << endl;
 	return inDeg;
 } // indegreeDistribution
+
 
 // compute the distance between node u and v --- O(m) 
 int Graph::distance(const int u, const int v) {
@@ -727,14 +753,19 @@ double Graph::averageDistance(const Scope scope = FULL, const double inputsample
     return res / (long double) ((long double) nodes(scope) * ((long double) nodes(scope) - 1));
 } // averageDistance
 
+
 // print the distance distribution [distance frequency]
 vector<long> Graph::distanceDistribution(const Scope scope = FULL, const double inputsamplesize = 1.0) {
+
     double samplesize = inputsamplesize;
+
     if(nodes(scope) < 2)
         return vector<long>(1, 0);
-    int a, maxi = nodes(scope);
+
+    const int cpus = omp_get_num_procs();
+    int tid, a, maxi = nodes(scope);
     double total = 0;
-    vector<long> longarray(vector<long>(n, 0));
+    vector< vector<long> > longarray(cpus, vector<long>(n, 0));
     vector<bool> done(n + 1, false); // for sampling
     int donecount = 0;
     if(samplesize < 1.0) {
@@ -743,14 +774,16 @@ vector<long> Graph::distanceDistribution(const Scope scope = FULL, const double 
         maxi = samplesize;
         samplesize = (double) maxi / (double) nodes(scope);
     }
-    // clog << "Computing distance distribution (based on a " << samplesize * 100
-    //         << "% sample of " << maxi << " nodes) " << endl;
+    //clog << "Computing distance distribution (based on a " << samplesize * 100
+    //        << "% sample of " << maxi << " nodes) with " << cpus << " CPUs..." << endl;
 
+#pragma omp parallel for schedule(dynamic, 1) private(tid, a)
     for(int i = 0; i < n; i++) {
         if(donecount >= maxi)
             continue;
-        if(donecount % max(1, maxi / 20) == 0) // show status % without div by 0 errors
-            clog << " " << donecount / max(1, maxi / 100) << "%";
+        tid = omp_get_thread_num();
+        //if(donecount % max(1, maxi / 20) == 0) // show status % without div by 0 errors
+        //    clog << " " << donecount / max(1, maxi / 100) << "%";
 
         // sampled 
         if(samplesize < 1.0) {
@@ -758,7 +791,7 @@ vector<long> Graph::distanceDistribution(const Scope scope = FULL, const double 
             while(done[a] || !inScope(a, scope)) {
                 a = rand() % n;
             }
-            distances(a, longarray);
+            distances(a, longarray[tid]);
             donecount++;
             done[a] = true;
         }// exact computation
@@ -766,19 +799,21 @@ vector<long> Graph::distanceDistribution(const Scope scope = FULL, const double 
             if(!inScope(i, scope)) {
                 continue;
             }
-            distances(i, longarray);
+            distances(i, longarray[tid]);
             donecount++;
         }
 
     } // for
 
-    // clog << " " << "Done." << endl;
+    //clog << " " << "Done." << endl;
 
     // merge all cpu results
     vector<long> alllongarray(n, 0);
     for(int i = 0; i < n; i++) {
-        alllongarray[i] += (1.0 / samplesize)*(double) longarray[i];
-        total += (i * longarray[i]);
+        for(int j = 0; j < cpus; j++) {
+            alllongarray[i] += (1.0 / samplesize)*(double) longarray[j][i];
+            total += (i * longarray[j][i]);
+        }
     }
 
     //printList(alllongarray);
