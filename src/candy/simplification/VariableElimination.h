@@ -58,7 +58,8 @@ private:
 
     std::vector<Var> eliminiated_variables;
     std::vector<std::vector<Cl>> eliminated_clauses;
-    std::vector<char> frozen;
+    Stamp<uint8_t> frozen;
+    std::vector<uint8_t> undo_counter;
 
     std::vector<Lit> resolvent;
 
@@ -69,11 +70,12 @@ private:
     inline void init() {
         nEliminated = 0;
         if (trail.nVars() > frozen.size()) {
-            frozen.resize(trail.nVars());
+            frozen.grow(trail.nVars());
             eliminated_clauses.resize(trail.nVars());
+            undo_counter.resize(trail.nVars(), 0);
         }
         for (Lit lit : trail.assumptions) {
-            frozen[lit.var()] = true;
+            frozen.set(lit.var());
         }
     }
 
@@ -95,14 +97,20 @@ public:
     std::vector<Cl> reset() {
         std::vector<Cl> correction_set;
 
-        std::fill(frozen.begin(), frozen.end(), false);
+        frozen.clear();
+
+        // do sth. more intelligent here
+        for (Var var = 0; var < (Var)undo_counter.size(); var++) {
+            if (undo_counter[var] > 5) frozen.set(var);
+        }
 
         if (trail.nVars() > frozen.size()) {
-            frozen.resize(trail.nVars());
+            frozen.grow(trail.nVars());
             eliminated_clauses.resize(trail.nVars());
+            undo_counter.resize(trail.nVars(), 0);
         }
         for (Lit lit : trail.assumptions) {
-            frozen[lit.var()] = true;
+            frozen.set(lit.var());
             if (is_eliminated(lit.var())) {
                 std::vector<Cl> cor = undo_elimination(lit.var());
                 correction_set.insert(correction_set.end(), cor.begin(), cor.end());
@@ -113,6 +121,7 @@ public:
 
     std::vector<Cl> undo_elimination(Var var) {
         assert(is_eliminated(var));
+        undo_counter[var]++;
         std::vector<Cl> correction_set;
         correction_set.insert(correction_set.end(), eliminated_clauses[var].begin(), eliminated_clauses[var].end());
         eliminated_clauses[var].clear();
