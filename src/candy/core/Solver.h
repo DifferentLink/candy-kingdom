@@ -156,6 +156,7 @@ public:
 protected:
     ClauseDatabase clause_db;
     Trail trail;
+    
     TPropagate propagator;
     TLearning conflict_analysis;
     TBranching branch;
