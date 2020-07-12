@@ -1,7 +1,5 @@
 add_library(core OBJECT
     Solver.h
-    Statistics.cc
-    Statistics.h
     clauses/Clause.h
     clauses/ClauseAllocator.h
     clauses/ClauseAllocatorMemory.h
@@ -9,6 +7,8 @@ add_library(core OBJECT
     clauses/Certificate.h
     CNFProblem.cc
     CNFProblem.h
+    DRATChecker.cc
+    DRATChecker.h
     SolverTypes.h
     Trail.h
 )

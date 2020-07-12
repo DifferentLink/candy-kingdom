@@ -30,32 +30,41 @@ cmake --build .
 
 Then you can build Candy like this:
 ```bash
-mkdir release
-cd release
+mkdir build
+cd build
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . --target candy
-```
-
-In order to build and execute unit-tests execute:
-```bash
-cmake --build .
-ctest
+make candy
 ```
 
 ## Run
 
 In order to run candy and solve a problem `example.cnf` invoke:
 ```bash
-candy example.cnf
+./candy example.cnf
 ```
 
-Candy offers a multitude of options, like paramaters to tune heuristics and thresholds, or parameters to select an alternative solving strategy (e.g. *rsar* or *rsil*). If you have any questions feel free to contact [me](mailto:2.markus.iser@gmail.com).
+Candy offers a multitude of options, like paramaters to tune heuristics and thresholds, or parameters to select an alternative solving strategy (e.g. *rsar* or *rsil*). If you have any questions feel free to contact [me](mailto:markus.iser@kit.edu).
 
 ## Credits
 
-Credits go to Robin Freyler and Felix Kutzner for a multitude of discussions about SAT solving and structured programming, 
-we were SAT CLIQUE. The main ideas for the profound structural changes in Candy have been developed in that time. 
-
-Credits go to all the people at ITI and the students.
+Credits go to SAT CLIQUE, all the people at ITI and our students. 
 
 
+## Build and make on Windows
+- mingw installed ([mingw-64 (posix)](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download))
+- mingw32-pthreads (mingw32-libpthreadgc-dll, mingw32-libpthreadgc-dev, mingw32-pthreads-w32*)
+- mingw32-libz-dll and mingw32-libz-dev
+- mingw32-libgomp-dll for OpenMP (if needed)
+- everything else required to compile c/c++
+- mingw64\bin directory added to PATH
+
+```bash
+mkdir release
+cd release
+cmake -G "MinGW Makefiles" -DZLIB_INCLUDE_DIR=<mingw-include-dir> -DZLIB_LIBRARY=<path-to-mingw-libz.a> -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release ..
+cmake --bild . --target candy
+```
+
+example path-to-mingw-include-dir: C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/x86_64-w64-mingw32/include
+
+example path-to-mingw-libz: C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/x86_64-w64-mingw32/lib/libz.a

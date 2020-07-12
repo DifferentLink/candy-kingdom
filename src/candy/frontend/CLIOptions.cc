@@ -47,10 +47,16 @@ namespace MinimizerOptions {
     BoolOption minimize_project("Minimizer", "minimize-project", "Project to input variables.", false);
 }
 
+namespace TestingOptions {
+    BoolOption test_model("TEST", "test-model", "test model.", false);
+    BoolOption test_proof("TEST", "test-proof", "test proof.", false);
+    IntOption test_limit("TEST", "test-limit", "limit the number of variables ('0' means inactive).", 0, IntRange(0, 1000));
+}
+
 namespace SolverOptions {
     IntOption verb("MAIN", "verb", "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 2));
     BoolOption mod("MAIN", "model", "show model.", false);
-    StringOption opt_certified_file("METHOD", "certified-output", "Certified UNSAT output file", "");
+    StringOption opt_certified_file("MAIN", "certified-output", "Certified UNSAT output file", "");
     BoolOption gate_stats("MAIN", "gate-stats", "show only gate recognizer statistics.", false);
 
     IntOption memory_limit("MAIN", "memory-limit", "Limit on memory usage in mega bytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
@@ -65,16 +71,28 @@ namespace SolverOptions {
     DoubleOption opt_vsids_max_var_decay("CORE", "max-var-decay", "The variable activity decay factor", 0.95, DoubleRange(0, false, 1, false));
     BoolOption opt_vsids_extra_bump("CORE", "extra-bump", "Glucose Style Extra Bumping on current desicion level", false);
 
+    BoolOption opt_use_vsidsc("BRANCHING", "use-vsidsc", "use VSIDS branching heuristic with centrality (default: use VSIDS)", false);
+    IntOption opt_vsidsc_mult("BRANCHING", "vsidsc-mult", "VSIDSC multiplier for centrality values", 1, IntRange(1, INT16_MAX));
+    BoolOption opt_vsidsc_bump("BRANCHING", "vsidsc-bump", "use VSIDSC bumping based on centrality value", true);
+    BoolOption opt_vsidsc_scope("BRANCHING", "vsidsc-lwcc", "VSIDSC uses LWCC graph scope (default: FULL)", false);
+    DoubleOption opt_vsidsc_samplesize("BRANCHING", "vsidsc-sample-size", "VSIDSC sample size for centrality calculation (only for vsidsc-centralities 0, 1)", 1.0, DoubleRange(0.0, false, 1.0, true));
+    DoubleOption opt_vsidsc_samplesize_decay("BRANCHING", "vsidsc-sample-size-decay", "VSIDSC decay sample size by factor for repeated centrality calculations (1=no decay)", 1.0, DoubleRange(0.0, false, 1.0, true));
+    DoubleOption opt_vsidsc_dbsize_recalc("BRANCHING", "vsidsc-dbsize-recalc", "VSIDSC centrality recalc upon db_reduce if db_size grew by this factor since last calculation (1=every db_size increase, 0=once at start)", 0.0, DoubleRange(0.0, false, 10.0, true));
+    BoolOption opt_vsidsc_debug("BRANCHING", "vsidsc-debug", "Active Centrality debugging", false);
+
     BoolOption opt_use_lrb("BRANCHING", "use-lrb", "use LRB branching heuristic (default: use VSIDS)", false);
     DoubleOption opt_lrb_step_size("CORE", "lrb-step-size", "The lrb step size (starting point)", 0.4, DoubleRange(0, false, 1, false));
     DoubleOption opt_lrb_min_step_size("CORE", "lrb-min-step-size", "The lrb minimium step size", 0.06, DoubleRange(0, false, 1, false));
 
-    IntOption opt_sonification_delay("SONIFICATION", "sonification-delay", "ms delay after each event to improve realtime sonification", 0, IntRange(0, INT16_MAX));
-
-    BoolOption opt_sort_watches("MEMORY LAYOUT", "sort-watches", "sort watches", true);
-    BoolOption opt_sort_variables("MEMORY LAYOUT", "sort-variables", "sort variables", true);
+    BoolOption opt_sort_variables("MEMORY LAYOUT", "sort-variables", "sort variables", false);
     BoolOption opt_preprocessing("METHOD", "pre", "Completely turn on/off any preprocessing.", true);
-    IntOption opt_inprocessing("MEMORY LAYOUT", "inprocessing", "execute eliminate with persistent clauses during search every n-th restart", 17);
+    IntOption opt_inprocessing("MEMORY LAYOUT", "inprocessing", "execute eliminate with persistent clauses during search every n-th restart", 0);
+}
+
+namespace SonificationOptions {
+    StringOption host("SONIFICATION", "sonification-host", "host of sound synthesizer (for osc messages)", "127.0.0.1");
+    IntOption port("SONIFICATION", "sonification-port", "port of sound synthesizer (for osc messages)", 7000, IntRange(1, 99999));
+    IntOption delay("SONIFICATION", "sonification-delay", "minimum delay (ms) between timing events to reduce number of events per second", 0, IntRange(0, INT16_MAX));
 }
 
 namespace VariableEliminationOptions {

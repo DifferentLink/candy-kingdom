@@ -71,8 +71,6 @@ private:
     std::vector<Clause*> clauses; // Working set of problem clauses
     bool emptyClause_;
 
-    const unsigned int persistentLBD;
-    const bool keepMedianLBD;
     const bool recalculateLBD;
 
     std::vector<std::vector<BinaryWatcher>> binaryWatchers;
@@ -80,20 +78,15 @@ private:
     Certificate certificate;
 
 public:
-
-    size_t nReduced, nReduceCalls;
     
     /* analysis result is stored here */
 	AnalysisResult result;
 
     ClauseDatabase() : 
         allocator(), variables(0), clauses(), emptyClause_(false), 
-        persistentLBD(ClauseDatabaseOptions::opt_persistent_lbd),
-        keepMedianLBD(ClauseDatabaseOptions::opt_keep_median_lbd), 
         recalculateLBD(ClauseDatabaseOptions::opt_recalculate_lbd), 
         binaryWatchers(), 
         certificate(SolverOptions::opt_certified_file), 
-        nReduced(0), nReduceCalls(0),
         result()
     { }
 
@@ -106,8 +99,6 @@ public:
         variables = 0;
         emptyClause_ = false;
         result.nConflicts = 0;
-        nReduceCalls = 0;
-        nReduced = 0;
     }
 
     unsigned int nVars() {
@@ -120,7 +111,7 @@ public:
             binaryWatchers.resize(variables*2+2);
         }
         for (Cl* import : problem) {
-            createClause(import->begin(), import->end(), lemma ? 0 : import->size());
+            createClause(import->begin(), import->end(), lemma ? 0 : import->size(), lemma);
         }
         if (global_allocator != nullptr) setGlobalClauseAllocator(global_allocator);
     }
@@ -189,14 +180,14 @@ public:
     }
 
     template<typename Iterator>
-    inline Clause* createClause(Iterator begin, Iterator end, unsigned int lbd = 0) {
+    inline Clause* createClause(Iterator begin, Iterator end, unsigned int lbd = 0, bool lemma = false) {
         unsigned int length = std::distance(begin, end);
         unsigned int weight = length < 3 ? 0 : lbd;
 
         Clause* clause = new (allocator.allocate(length, weight)) Clause(begin, end, weight);
         clauses.push_back(clause);
 
-        certificate.added(clause->begin(), clause->end());
+        if (!lemma) certificate.added(clause->begin(), clause->end());
 
         if (clause->size() == 0) {
             emptyClause_ = true;
@@ -226,7 +217,7 @@ public:
         assert(clause->size() > 1);
         std::vector<Lit> literals;
         for (Lit literal : *clause) if (literal != lit) literals.push_back(literal);
-        Clause* new_clause = createClause(literals.begin(), literals.end(), std::min(clause->getLBD(), (uint16_t)(literals.size()-1)));
+        Clause* new_clause = createClause(literals.begin(), literals.end(), std::min(clause->getLBD(), (uint16_t)literals.size()));
         removeClause(clause);
         return new_clause;
     }
@@ -237,39 +228,6 @@ public:
 
     std::vector<Clause*> getUnitClauses() { 
         return allocator.collect_unit_clauses();
-    }
-
-    /**
-     * only call this method at decision level 0
-     **/
-    void reduce() { 
-        std::vector<Clause*> learnts;
-
-        copy_if(clauses.begin(), clauses.end(), std::back_inserter(learnts), [this](Clause* clause) { 
-            return clause->getLBD() > persistentLBD; 
-        });
-
-        std::sort(learnts.begin(), learnts.end(), [](Clause* c1, Clause* c2) { 
-            return c1->getLBD() < c2->getLBD(); 
-        });
-
-        if (learnts.size() > 1) {
-            auto begin = learnts.begin() + learnts.size()/2;
-
-            if (keepMedianLBD) {
-                unsigned int median_lbd = (*begin)->getLBD();
-                while (begin != learnts.end() && (*begin)->getLBD() == median_lbd) {
-                    begin++;
-                }
-            }
-
-            for_each(begin, learnts.end(), [this] (Clause* clause) { 
-                removeClause(clause); 
-            });
-            
-            nReduceCalls++;
-            nReduced += std::distance(begin, learnts.end());
-        }
     }
 
     /**

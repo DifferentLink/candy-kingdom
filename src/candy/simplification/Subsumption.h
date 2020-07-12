@@ -62,15 +62,16 @@ private:
     bool unit_resolution(SubsumptionClause* clause);
 
 public:
+    unsigned int nDuplicates;
     unsigned int nSubsumed;
     unsigned int nStrengthened;      
 
     Subsumption(SubsumptionClauseDatabase& database_)
-     : database(database_), nSubsumed(0), nStrengthened(0)
+     : database(database_), nDuplicates(0), nSubsumed(0), nStrengthened(0)
     { }
 
     bool subsume() {
-        nSubsumed = nStrengthened = 0; 
+        nDuplicates = nSubsumed = nStrengthened = 0; 
                 
         for (const SubsumptionClause* clause : database) {
             if (!clause->is_deleted()) {
@@ -104,12 +105,14 @@ bool Subsumption::unit_resolution(SubsumptionClause* clause) {
     for (SubsumptionClause* occurence : occurences) {
         if (occurence != clause && !occurence->is_deleted()) {
             if (occurence->contains(unit)) {
+                // std::cout << "c " << unit << " - unit resolution removing clause " << *occurence->get_clause() << std::endl;
                 database.remove(occurence);
             } else {
                 if (occurence->size() == 1) {
                     return false;
                 }
-                database.strengthen(occurence, unit);
+                // std::cout << "c " << unit << " - unit resolution strengthening clause " << *occurence->get_clause() << std::endl;
+                database.strengthen(occurence, ~unit);
             }
         }
     }
@@ -131,17 +134,29 @@ bool Subsumption::subsume(SubsumptionClause* subsumption_clause) {
             Lit l = clause->subsumes(occurence);
 
             if (l == lit_Undef) {
-                nSubsumed++;
-                if (clause->get_clause()->isLearnt() && !occurence->get_clause()->isLearnt()) {
-                    clause = database.create(clause->begin(), clause->end());
-                    database.remove(subsumption_clause);
+                if (clause->size() == occurence->size() && (clause->lbd() < occurence->lbd() || clause->lbd() == occurence->lbd() && clause->get_clause() < occurence->get_clause())) { 
+                    // make sure each thread would deterministically delete the "same" duplicate
+                    nDuplicates++;
+                    // std::cout << "c Removing duplicate clause " << *occurence->get_clause() << std::endl;
+                    database.remove((SubsumptionClause*)occurence);
                 }
-                database.remove((SubsumptionClause*)occurence);
+                else {
+                    nSubsumed++;
+                    if (occurence->get_clause()->isPersistent() && clause->get_clause()->isLearnt()) {
+                        // recreate subsuming clause persistent
+                        clause = database.create(clause->begin(), clause->end());
+                        database.remove(subsumption_clause);
+                    }
+                    // std::cout << "c Removing subsumed clause " << *occurence->get_clause() << "(Subsumed by " << *clause->get_clause() << ")" << std::endl;
+                    database.remove((SubsumptionClause*)occurence);
+                }
             }
             else if (l != lit_Error) {
                 nStrengthened++;   
                 if (occurence->size() > 1) {
+                    // std::cout << "c Creating self-subsuming resolvent of clauses " << *occurence->get_clause() << " and " << *clause->get_clause() << " using literal " << ~l << std::endl;
                     database.strengthen((SubsumptionClause*)occurence, ~l);
+                    return subsume((SubsumptionClause*)occurence);
                 }
                 else {
                     return false;

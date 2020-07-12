@@ -53,7 +53,7 @@
 
 
 project(Candy)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5.1)
 
 # Temporary solution for shared lib
 #set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -236,6 +236,12 @@ if(CANDY_ENABLE_SONIFICATION)
 endif()
 
 ### Find libraries
+# set zlib for windows with mingw
+if (MINGW)
+	set(ZLIB_INCLUDE_DIR  "C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/x86_64-w64-mingw32/include")
+	set(ZLIB_LIBRARY "C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/x86_64-w64-mingw32/lib/libz.a")
+endif (MINGW)
+# end mingw config
 
 find_package(ZLIB)
 if (${ZLIB_FOUND})
@@ -277,7 +283,8 @@ set(CANDY_OBJECTS
   $<TARGET_OBJECTS:simplification>
   $<TARGET_OBJECTS:sonification>
   $<TARGET_OBJECTS:frontend>
-  $<TARGET_OBJECTS:utils>)
+  $<TARGET_OBJECTS:utils>
+  $<TARGET_OBJECTS:teexgraph>)
 
 ### OSCPack
 link_directories(${CMAKE_BINARY_DIR}/lib/oscpack)
@@ -286,7 +293,6 @@ set(CANDY_LIBS ${ZLIB_LIBRARIES} oscpack)
 
 add_subdirectory(lib)
 add_subdirectory(testsrc)
-add_subdirectory(fuzzing)
 
 ### Define and link target executables and libraries
 set(candylib_build_mode STATIC)
@@ -299,14 +305,18 @@ target_link_libraries(candylib ${CANDY_LIBS})
 
 add_executable(candy src/candy/Main.cc $<TARGET_OBJECTS:frontend>)
 add_executable(cnf2aig src/candy/cnf2aig.cc $<TARGET_OBJECTS:frontend>)
+add_executable(fuzz_ipasir src/candy/FuzzIpasir.cc $<TARGET_OBJECTS:frontend>)
+
 candy_executable_customizations(candy)
 FIND_LIBRARY (PSAPI Psapi)
 if (PSAPI)
 	target_link_libraries(candy candylib ${PSAPI})
 	target_link_libraries(cnf2aig candylib ${PSAPI})
+	target_link_libraries(fuzz_ipasir candylib ${PSAPI})
 ELSE()
 	target_link_libraries(candy candylib)
 	target_link_libraries(cnf2aig candylib)
+	target_link_libraries(fuzz_ipasir candylib)
 ENDIF()
 
 

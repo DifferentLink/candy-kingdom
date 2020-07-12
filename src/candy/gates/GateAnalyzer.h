@@ -94,19 +94,10 @@ private:
     bool usePatterns = false;
     bool useSemantic = false;
     bool useHolistic = false;
-    bool useIntensification = false;
 
     // main analysis routines
-    void gate_recognition(std::vector<Cl*> roots);
-    void classic_recognition(std::vector<Lit> roots);
-    void recognition_with_intensification(std::vector<Lit> roots);
+    void gate_recognition(std::vector<Lit> roots);
     bool isGate(Lit candidate, bool pat, bool sem, bool hol);
-
-    // clause selection heuristic
-    std::vector<Lit> getRarestLiterals(std::vector<For>& index);
-    std::vector<Cl*> getUnitClauses();
-    std::vector<Cl*> getClausesWithRareLiterals();
-    std::vector<Cl*> getClausesWithMaximalLiterals();
 
     // clause patterns of full encoding
     bool patternCheck(Lit o, const For& fwd, const For& bwd);

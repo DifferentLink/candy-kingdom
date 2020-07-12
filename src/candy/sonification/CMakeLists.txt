@@ -1,8 +1,6 @@
 add_library(sonification OBJECT
-    Sonification.cc
     Sonification.h
-    SolverSonification.cc
-    SolverSonification.h
-    ControllerInterface.cc
     ControllerInterface.h
 )
+
+set_target_properties(sonification PROPERTIES LINKER_LANGUAGE CXX)

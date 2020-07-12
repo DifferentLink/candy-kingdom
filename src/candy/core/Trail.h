@@ -209,24 +209,18 @@ public:
         return value(lit) == l_True;
     }
 
-    inline bool satisfies(const Clause& c) const {
-        return std::any_of(c.begin(), c.end(), [this] (Lit lit) { return value(lit) == l_True; });
+    template<typename Iterator>
+    inline bool satisfies(Iterator begin, Iterator end) const {
+        return std::any_of(begin, end, [this] (Lit lit) { return value(lit) == l_True; });
     }
 
     inline bool falsifies(Lit lit) const {
         return value(lit) == l_False;
     }
 
-    inline bool falsifies(const Clause& c) const {
-        return std::all_of(c.begin(), c.end(), [this] (Lit lit) { return value(lit) == l_False; });
-    }
-
-    inline bool defines(Lit lit) const {
-        return value(lit) != l_Undef;
-    }
-
-    inline bool defines(const Clause& c) const {
-        return std::all_of(c.begin(), c.end(), [this] (Lit lit) { return value(lit) != l_Undef; });
+    template<typename Iterator>
+    inline bool falsifies(Iterator begin, Iterator end) const {
+        return std::all_of(begin, end, [this] (Lit lit) { return value(lit) == l_False; });
     }
 
     // Main internal methods:
@@ -248,39 +242,44 @@ public:
         trail_lim.push_back(trail_size);
     }
 
-    inline void decide(Lit p) {
-        assert(value(p) == l_Undef);
+    inline void set_value(Lit p) {
         assigns[p.var()] = lbool(!p.sign());
-        vardata[p.var()] = VarData(nullptr, decisionLevel());
         trail[trail_size++] = p;
+    }
+
+    inline void decide(Lit p) {
+        // std::cout << "Branching on " << p << std::endl;
+        assert(value(p) == l_Undef);
+        set_value(p);
+        vardata[p.var()] = VarData(nullptr, decisionLevel());
         nDecisions++;
     }
 
     inline bool propagate(Lit p, Clause* from) {
+        // std::cout << "Propgating " << p << " due to " << *from << std::endl;
         if (this->falsifies(p)) {
             return false;
         }
         else {
-            assigns[p.var()] = lbool(!p.sign());
+            set_value(p);
             vardata[p.var()] = VarData(from, decisionLevel());
-            trail[trail_size++] = p;
             nPropagations++;
             return true;
         }
     }
 
     inline bool fact(Lit p) {
+        // std::cout << "Setting fact " << p << std::endl;
         assert(decisionLevel() == 0);
+        if (this->falsifies(p)) {
+            return false;
+        }
         vardata[p.var()] = VarData(nullptr, 0);
-        if (!this->defines(p)) {
-            assigns[p.var()] = lbool(!p.sign());
-            trail[trail_size++] = p;
+        if (!this->satisfies(p))  {
+            set_value(p);
             nPropagations++;
-            return true;
         }
-        else {
-            return this->satisfies(p);
-        }
+        return true;
     }
 
     inline void backtrack(unsigned int level) {
@@ -288,9 +287,9 @@ public:
             for (auto it = begin(level); it != end(); it++) {
                 assigns[it->var()] = l_Undef; 
             }
-            qhead = trail_lim[level];
+            qhead = level == 0 ? 0 : trail_lim[level];
             trail_size = trail_lim[level];
-            trail_lim.erase(trail_lim.begin() + level, trail_lim.end());
+            trail_lim.resize(level);
         }
     }
 
@@ -317,11 +316,11 @@ public:
 
     void print() {
         unsigned int level = 0;
-        std::cout << "Trail: ";
-        for (unsigned int i = 0; i < size(); ++i) {
-            if (i == trail_lim[level]) {
-                std::cout << "'" << trail[i] << "' ";
+        std::cout << "cT Trail (size = " << trail_size << ", levels = " << trail_lim.size() << "): " << std::endl << "cT Level 0: ";
+        for (unsigned int i = 0; i < trail_size; ++i) {
+            if (level < trail_lim.size() && i == trail_lim[level]) {
                 level++;
+                std::cout << std::endl << "cT Level " << level << ": '" << trail[i] << "' ";
             } 
             else {
                 std::cout << trail[i] << " ";

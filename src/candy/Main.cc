@@ -41,7 +41,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <iostream>
 #include <csignal>
-#include <zlib.h>
 #include <string>
 #include <stdexcept>
 #include <regex>
@@ -49,27 +48,22 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <type_traits>
 #include <chrono>
 
-#if !defined(WIN32) || defined(CYGWIN)
-#include <execinfo.h>
-#endif
-
 #include "candy/utils/Memory.h"
 #include "candy/utils/Options.h"
 
 #include "candy/core/CNFProblem.h"
-#include "candy/core/Statistics.h"
 #include "candy/core/CandySolverInterface.h"
 #include "candy/core/CandySolverResult.h"
 #include "candy/minimizer/Minimizer.h"
+#include "candy/core/DRATChecker.h"
 
 #include "candy/frontend/SolverFactory.h"
 #include "candy/frontend/CandyBuilder.h"
-#include "candy/frontend/Exceptions.h"
+#include "candy/utils/Exceptions.h"
 
 #include "candy/gates/GateAnalyzer.h"
 #include "candy/rsar/ARSolver.h"
 #include "candy/rsar/Heuristics.h"
-
 
 #include "candy/systems/branching/rsil/BranchingHeuristics.h"
 
@@ -104,42 +98,27 @@ static void just_quit(int signum) {
     _exit(1);
 }
 
-static void print_stacktrace(int signum) {
-#if !defined(WIN32) || defined(CYGWIN)
-    void *array[10];
-    size_t size = backtrace(array, 10);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "c Error: signal %d:\n", signum);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    std::raise(signum);
-#endif
-    _exit(1);
-}
-
 static void installSignalHandlers(bool handleInterruptsBySolver) {
 #if defined(WIN32) && !defined(CYGWIN)
 #if defined(_MSC_VER)
-#pragma message ("Warning: setting signal handlers not yet implemented for Win32")
+#pragma message ("Warning: setting signal handlers not implemented for Win32")
 #else
-#warning "setting signal handlers not yet implemented for Win32"
+#warning "setting signal handlers not implemented for Win32"
 #endif
 #else
     if (handleInterruptsBySolver) {
         signal(SIGINT, set_interrupted);
         signal(SIGXCPU, set_interrupted);
-        signal(SIGSEGV, print_stacktrace);
     } else {
         signal(SIGINT, just_quit);
         signal(SIGXCPU, just_quit);
-        signal(SIGSEGV, print_stacktrace);
     }
 #endif
 }
 
 static void printProblemStatistics(CNFProblem& problem) {
-    std::cout << "Variables: " << problem.nVars() << std::endl;
-    std::cout << "Clauses: " << problem.nClauses() << std::endl;
+    std::cout << "c Variables: " << problem.nVars() << std::endl;
+    std::cout << "c Clauses: " << problem.nClauses() << std::endl;
 }
 
 static void printGateStatistics(CNFProblem& problem) {
@@ -178,12 +157,11 @@ CandySolverInterface* solver = nullptr;
 lbool result = l_Undef;
 
 static void runSolverThread(lbool& result, CandySolverInterface*& solver, CNFProblem& problem, ClauseAllocator*& global_allocator) {
-    std::cout << "c Sort Watches: " << SolverOptions::opt_sort_watches << std::endl;
     std::cout << "c Sort Variables: " << SolverOptions::opt_sort_variables << std::endl;
     std::cout << "c Preprocessing: " << SolverOptions::opt_preprocessing << std::endl;
     std::cout << "c Inprocessing: " << SolverOptions::opt_inprocessing << std::endl;
 
-    CandySolverInterface* solver_ = createSolver(ParallelOptions::opt_static_propagate, SolverOptions::opt_use_lrb, RSILOptions::opt_rsil_enable);
+    CandySolverInterface* solver_ = createSolver(ParallelOptions::opt_static_propagate, SolverOptions::opt_use_lrb, SolverOptions::opt_use_vsidsc, RSILOptions::opt_rsil_enable);
 
     solver_->init(problem, global_allocator);
 
@@ -203,26 +181,34 @@ static void runSolverThread(lbool& result, CandySolverInterface*& solver, CNFPro
 }
 
 int main(int argc, char** argv) {
+    std::cout << "c Candy is made from Glucose." << std::endl;
+
     setUsageHelp("c USAGE: %s [options] <input-file>\n\nc where input may be either in plain or gzipped DIMACS.\n");
     parseOptions(argc, argv, true);
-    
-    if (SolverOptions::verb > 1) {
-        std::cout << "c Candy 0.7 is made of Glucose (Many thanks to the Glucose and MiniSAT teams)" << std::endl;
-    }
 
     CNFProblem problem{};
+    const char* inputFilename = nullptr;
     try {
         if (argc == 1) {
             std::cout << "c Reading from standard input ... " << std::endl; 
             problem.readDimacsFromStdin();
         } else {
             std::cout << "c Reading file: " << argv[1] << std::endl; 
-            const char* inputFilename = argv[1];
+            inputFilename = argv[1];
             problem.readDimacsFromFile(inputFilename);
         }
     }
     catch (ParserException& e) {
-		printf("c Caught Parser Exception\n%s\n", e.what());
+		std::cout << "c Caught Parser Exception: " << std::endl << e.what() << std::endl;
+        return 1;
+    }
+
+    if (TestingOptions::test_proof && strlen(SolverOptions::opt_certified_file) == 0) {
+        SolverOptions::opt_certified_file = "proof.drat";
+    }
+
+    if (TestingOptions::test_limit > 0 && (int)problem.nVars() > TestingOptions::test_limit) {
+        std::cout << "c Number of variables surpasses testing limit" << std::endl;
         return 0;
     }
 
@@ -243,7 +229,7 @@ int main(int argc, char** argv) {
             solver = createRSARSolver(problem);
         }
         else {
-            solver = createSolver(ParallelOptions::opt_static_propagate, SolverOptions::opt_use_lrb, RSILOptions::opt_rsil_enable, RSILOptions::opt_rsil_advice_size);
+            solver = createSolver(ParallelOptions::opt_static_propagate, SolverOptions::opt_use_lrb, SolverOptions::opt_use_vsidsc, RSILOptions::opt_rsil_enable, RSILOptions::opt_rsil_advice_size);
         }
         solvers.push_back(solver); 
 
@@ -262,7 +248,7 @@ int main(int argc, char** argv) {
         for (unsigned int count = 0; count < (unsigned int)ParallelOptions::opt_threads && result == l_Undef; count++) {
             std::cout << "c Initializing Solver " << count << std::endl;
             ClauseDatabaseOptions::opt_recalculate_lbd = false;
-            SolverOptions::opt_sort_watches = ((count % 2) == 0);
+            SolverOptions::opt_sort_variables = ((count % 2) == 0);
             SolverOptions::opt_preprocessing = (count == 0);
             SolverOptions::opt_inprocessing = count + SolverOptions::opt_inprocessing;
             VariableEliminationOptions::opt_use_elim = !ParallelOptions::opt_static_database;
@@ -347,7 +333,6 @@ int main(int argc, char** argv) {
                 std::cout << "c Minimized-Model: " << model.getMinimizedModelLiterals() << std::endl;
             } 
             else {
-                // problem.checkResult(result);
                 std::cout << "v";
                 for (Var v = 0; v < (Var)problem.nVars(); v++) {
                     std::cout << " " << model.value(v);
@@ -357,11 +342,47 @@ int main(int argc, char** argv) {
         }
 
         if (SolverOptions::verb > 0) {
-            solver->getStatistics().printFinalStats();
+            solver->printStats();
         }
 
-        solver->getStatistics().printRuntimes();
-        std::cout << "c Peak Memory (MB): " << getPeakRSS()/(1024*1024) << std::endl;
+        // Currently only VSIDSC supports enhanced brancher statistics
+        if (SolverOptions::opt_use_vsidsc) {
+            VSIDSC *brancher = dynamic_cast<VSIDSC*>(solver->getBranchingUnit());
+            if (brancher) {
+                brancher->getStatistics().printFinalStats();
+            }
+        }
+
+        if (TestingOptions::test_model && result == l_True) {
+            bool satisfied = problem.checkResult(model);
+            if (satisfied) {
+                std::cout << "c Result verified by model checker" << std::endl;
+                std::cout << "c ********************************" << std::endl;
+                return 0;
+            }
+            else {
+                std::cout << "c Result could not be verified by model checker" << std::endl;
+                assert(satisfied);
+                return 1;
+            }
+        }
+        else if (TestingOptions::test_proof && result == l_False) {
+            std::string file (SolverOptions::opt_certified_file);
+            SolverOptions::opt_certified_file = "";
+            DRATChecker checker(problem);
+            bool proved = checker.check_proof(file.c_str());
+            // bool proved = (0 == check_proof((char*)inputFilename, SolverOptions::opt_certified_file.get())); 
+            if (proved) {
+                std::cout << "c Result verified by proof checker" << std::endl;
+                std::cout << "c ********************************" << std::endl;
+                return 0;
+            }
+            else {
+                std::cout << "c Result could not be verified by proof checker" << std::endl;
+                assert(proved);
+                return 1;
+            }
+        }
     }
 
     #ifndef __SANITIZE_ADDRESS__

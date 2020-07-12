@@ -56,8 +56,8 @@ private:
     SubsumptionClauseDatabase& database;
     Trail& trail;
 
-    std::vector<Lit> elimclauses;
-    std::vector<char> eliminated;
+    std::vector<Var> eliminiated_variables;
+    std::vector<std::vector<Cl>> eliminated_clauses;
     std::vector<char> frozen;
 
     std::vector<Lit> resolvent;
@@ -70,10 +70,10 @@ private:
         nEliminated = 0;
         if (trail.nVars() > frozen.size()) {
             frozen.resize(trail.nVars());
-            eliminated.resize(trail.nVars());
+            eliminated_clauses.resize(trail.nVars());
         }
         for (Lit lit : trail.assumptions) {
-            lock(lit.var());
+            frozen[lit.var()] = true;
         }
     }
 
@@ -83,8 +83,8 @@ public:
     VariableElimination(SubsumptionClauseDatabase& database_, Trail& trail_) : 
         database(database_),
         trail(trail_),
-        elimclauses(), 
-        eliminated(),
+        eliminiated_variables(),
+        eliminated_clauses(), 
         frozen(),
         resolvent(),
         active(VariableEliminationOptions::opt_use_elim),
@@ -92,16 +92,80 @@ public:
         nEliminated(0)
     { }
 
+    std::vector<Cl> reset() {
+        std::vector<Cl> correction_set;
+
+        std::fill(frozen.begin(), frozen.end(), false);
+
+        if (trail.nVars() > frozen.size()) {
+            frozen.resize(trail.nVars());
+            eliminated_clauses.resize(trail.nVars());
+        }
+        for (Lit lit : trail.assumptions) {
+            frozen[lit.var()] = true;
+            if (is_eliminated(lit.var())) {
+                std::vector<Cl> cor = undo_elimination(lit.var());
+                correction_set.insert(correction_set.end(), cor.begin(), cor.end());
+            }
+        }
+        return correction_set;
+    }
+
+    std::vector<Cl> undo_elimination(Var var) {
+        assert(is_eliminated(var));
+        std::vector<Cl> correction_set;
+        correction_set.insert(correction_set.end(), eliminated_clauses[var].begin(), eliminated_clauses[var].end());
+        eliminated_clauses[var].clear();
+        trail.setDecisionVar(var, true);
+        unsigned int j = 0;
+        for (unsigned int i = 0; i < eliminiated_variables.size(); i++) {
+            if (eliminiated_variables[i] != var) {
+                eliminiated_variables[j] = eliminiated_variables[i];
+                j++;
+            }
+        }
+        eliminiated_variables.resize(j);
+        return correction_set;
+    }
+
+    inline bool has_eliminated_variables() const {
+        return eliminiated_variables.size() > 0;
+    }
+
+    inline bool is_eliminated(Var v) const {
+        return eliminated_clauses[v].size() > 0;
+    }
+
+    void propagate_eliminated_variables() {
+        for (auto it = eliminiated_variables.rbegin(); it != eliminiated_variables.rend(); it++) {
+            Var var = *it;
+            bool value_set = false;
+            for (Cl clause : eliminated_clauses[var]) {
+                if (!trail.satisfies(clause.begin(), clause.end())) {
+                    for (Lit lit : clause) {
+                        if (lit.var() == var) {
+                            // std::cout << "c Fixing value of eliminated variable " << var << std::endl;
+                            trail.set_value(lit);
+                            value_set = true;
+                        }
+                    }
+                    break;
+                }
+            }
+            if (!value_set) {
+                for (Lit lit : eliminated_clauses[var][0]) {
+                    if (lit.var() == var) {
+                        // std::cout << "c Fixing value of eliminated variable " << var << std::endl;
+                        trail.set_value(~lit);
+                        value_set = true;
+                    }
+                }
+            }
+        }
+    }
+
     unsigned int nTouched() {
         return nEliminated; 
-    }
-
-    inline void lock(Var v) {
-        frozen[v] = true;
-    }
-
-    inline bool isEliminated(Var v) const {
-        return eliminated[v];
     }
 
     bool eliminate() {
@@ -113,7 +177,7 @@ public:
 
         std::vector<Var> variables;
         for (unsigned int v = 0; v < frozen.size(); v++) {
-            if (!frozen[v] && !isEliminated(v)) variables.push_back(v);
+            if (!frozen[v] && !is_eliminated(v)) variables.push_back(v);
         }
 
         std::sort(variables.begin(), variables.end(), [this](Var v1, Var v2) { 
@@ -121,7 +185,7 @@ public:
         });
 
         for (Var variable : variables) {
-            if (!trail.defines(Lit(variable))) {
+            if (trail.value(variable) == l_Undef) {
                 std::vector<SubsumptionClause*> pos, neg; // split the occurrences into positive and negative
                 for (SubsumptionClause* cl : database.refOccurences(variable)) {
                     if (!cl->is_deleted()) {
@@ -143,30 +207,14 @@ public:
         return true;
     }
 
-    void extendModel(CandySolverResult& result) {
-        int start = elimclauses.size();
-        bool satisfied = true;
-        for (int i = start, size = 0; i > 0; i--) {
-            if (i == start - size) {
-                // elimclauses[i] is last literal of current clause
-                if (!satisfied) {
-                    result.setModelValue(elimclauses[i]);
-                }
-                --i; //elimclauses[i] is size of next clause 
-                start = i;
-                size = elimclauses[i];
-                satisfied = false;
-                --i; //elimclauses[i] is first literal of next clause 
-            }
-            satisfied |= result.satisfies(elimclauses[i]);
-        }
-    }
-
 private:
-
     bool eliminate(Var variable, std::vector<SubsumptionClause*> pos, std::vector<SubsumptionClause*> neg) {
-        assert(!isEliminated(variable));
-        
+        assert(!is_eliminated(variable));
+
+        if (pos.size() == 0 && neg.size() == 0) {
+            return true;
+        }
+
         size_t nResolvents = 0;
         for (SubsumptionClause* pc : pos) for (SubsumptionClause* nc : neg) {
             size_t clause_size = 0;
@@ -181,53 +229,35 @@ private:
             } 
         }
         
-        for (SubsumptionClause* c : neg) mkElimClause(variable, *c->get_clause());
-        for (SubsumptionClause* c : pos) mkElimClause(variable, *c->get_clause());
+        for (SubsumptionClause* c : neg) eliminated_clauses[variable].push_back(Cl {c->get_clause()->begin(), c->get_clause()->end()} );
+        for (SubsumptionClause* c : pos) eliminated_clauses[variable].push_back(Cl {c->get_clause()->begin(), c->get_clause()->end()} );
         
         for (SubsumptionClause* pc : pos) for (SubsumptionClause* nc : neg) {
             if (merge(*pc->get_clause(), *nc->get_clause(), variable, resolvent)) {
                 uint16_t lbd = std::min({ pc->lbd(), nc->lbd(), (uint16_t)(resolvent.size()-1) });
+                // std::cout << "c Creating resolvent " << resolvent << std::endl;
                 database.create(resolvent.begin(), resolvent.end(), lbd);
                 assert(resolvent.size() > 0);
             }
         }
 
-        for (SubsumptionClause* clause : pos) database.remove(clause);
-        for (SubsumptionClause* clause : neg) database.remove(clause);
+        for (SubsumptionClause* clause : pos) {
+            // std::cout << "c VE Removing " << *clause->get_clause() << std::endl;
+            database.remove(clause);
+        }
+        for (SubsumptionClause* clause : neg) {
+            // std::cout << "c VE Removing " << *clause->get_clause() << std::endl;
+            database.remove(clause);
+        }
 
-        eliminated[variable] = true;
-        nEliminated++;
+        nEliminated++;        
         trail.setDecisionVar(variable, false);
+        eliminiated_variables.push_back(variable);
+        // std::cout << "c Eliminated variable " << variable << std::endl;
+
+        assert(eliminated_clauses[variable].size() > 0);
 
         return true;
-    }
-
-    void mkElimClause(Lit x) {
-        elimclauses.push_back(x);
-        Lit fake;
-        fake.x = 1;
-        elimclauses.push_back(fake);
-    }
-
-    void mkElimClause(Var v, const Clause& c) { 
-        assert(c.contains(Lit(v)) || c.contains(Lit(v, true)));
-        uint32_t first = elimclauses.size();
-        
-        // Copy clause to elimclauses-vector
-        for (Lit lit : c) {
-            if (lit.var() != v || first == elimclauses.size()) {
-                elimclauses.push_back(lit);
-            } else {
-                // Swap such that 'v' will occur first in the clause:
-                elimclauses.push_back(elimclauses[first]);
-                elimclauses[first] = lit;
-            }
-        }
-        
-        // Store the length of the clause last:
-        Lit fake;
-        fake.x = c.size();
-        elimclauses.push_back(fake);
     }
 
     // Returns FALSE if clause is always satisfied ('out_clause' should not be used).

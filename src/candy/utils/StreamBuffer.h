@@ -20,13 +20,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef StreamBuffer_h
 #define StreamBuffer_h
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
-#include <errno.h>
+#include <stdlib.h>
 #include <zlib.h>
-#include <memory>
-#include <assert.h>
+#include <errno.h>
+#include <string.h>
+#include <iostream>
 
 namespace Candy {
 
@@ -34,43 +33,41 @@ static const int buffer_size = 1024*1024;
 
 class StreamBuffer {
     gzFile in;
-    std::unique_ptr<unsigned char[]> buf;
+    char* buffer;
     int pos;
     int size;
     int offset;
 
-void assureLookahead();
+    void check_refill_buffer();
 
 public:
-explicit StreamBuffer(gzFile i) :
-    in(i), pos(0), size(0), offset(0) {
-        buf = std::unique_ptr<unsigned char[]>(new unsigned char[buffer_size]);
-        assureLookahead();
-}
+    StreamBuffer(gzFile file) : in(file), pos(0), size(0), offset(0) {
+        buffer = new char[buffer_size];
+        check_refill_buffer();
+    }
 
-int readInteger();
+    void skipLine();
+    void skipWhitespace();
+    void skipString(const char* str);
 
-int operator *() const {
-    return (pos >= size - offset) ? EOF : buf[pos];
-}
+    int readInteger();
 
-void skipLine();
-void skipWhitespace();
-bool skipString(const char* str);
+    int operator *() const {
+        return (pos >= size - offset) ? EOF : buffer[pos];
+    }
 
-void incPos(unsigned int inc) {
-    assert(inc > 0);
-    pos += inc;
-    assureLookahead();
-}
+    void operator ++() {
+        incPos(1);
+    }
 
-void operator ++() {
-    incPos(1);
-}
+    void incPos(unsigned int inc) {
+        pos += inc;
+        check_refill_buffer();
+    }
 
-bool eof() {
-    return pos >= size - offset;
-}
+    bool eof() {
+        return pos >= size - offset;
+    }
 
 };
 

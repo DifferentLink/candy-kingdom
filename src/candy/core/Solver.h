@@ -59,18 +59,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "candy/systems/learning/ConflictAnalysis.h"
 #include "candy/systems/propagate/Propagate.h"
 #include "candy/systems/branching/VSIDS.h"
+#include "candy/systems/branching/VSIDSC.h"
 #include "candy/systems/Restart.h"
+#include "candy/systems/ReduceDB.h"
 
 #include "candy/simplification/Subsumption.h"
 #include "candy/simplification/SubsumptionClauseDatabase.h"
 #include "candy/simplification/VariableElimination.h"
 #include "candy/simplification/AsymmetricVariableReduction.h"
+
 #include "candy/core/clauses/ClauseDatabase.h"
 #include "candy/core/clauses/Clause.h"
-
 #include "candy/core/CandySolverInterface.h"
-#include "candy/core/Statistics.h"
-#include "candy/sonification/Logging.h"
 #include "candy/core/SolverTypes.h"
 #include "candy/core/CNFProblem.h"
 #include "candy/core/Trail.h"
@@ -78,6 +78,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "candy/utils/Attributes.h"
 #include "candy/utils/CheckedCast.h"
+#include "candy/utils/Memory.h"
+
+#include "candy/sonification/Sonification.h"
 
 namespace Candy {
 
@@ -106,15 +109,37 @@ public:
         return trail;
     }
 
-    Statistics& getStatistics() override {
-        return statistics; 
-    }
-
     BranchingDiversificationInterface* getBranchingUnit() override {
         return &branch;
     }
 
+    unsigned int nVars() const override {
+        return trail.vardata.size();
+    }
+
+    unsigned int nClauses() const override {
+        return clause_db.size();
+    }
+
+    unsigned int nConflicts() const override {
+        return clause_db.result.nConflicts;
+    }
+
+    unsigned int nPropagations() const {
+        return trail.nPropagations;
+    }
+
+    unsigned int nDecisions() const {
+        return trail.nDecisions;
+    }
+
+    unsigned int nRestarts() const {
+        return restart.nRestarts();
+    }
+
     lbool solve() override;
+
+    void printStats();
 
     //TODO: use std::function<int(void*)> as type here
     void setTermCallback(void* state, int (*termCallback)(void* state)) override {
@@ -137,20 +162,17 @@ protected:
     TBranching branch;
 
     Restart restart;
+    ReduceDB reduce;
 
     SubsumptionClauseDatabase augmented_database;
     Subsumption subsumption;
     VariableElimination elimination;
     AsymmetricVariableReduction<TPropagate> reduction;
 
-    Statistics statistics;
-    Logging logging;
+    Sonification sonification;
+    unsigned int verbosity;
 
     CandySolverResult result;
-
-    // reduce-db
-    unsigned int nbclausesbeforereduce; // To know when it is time to reduce clause database
-    unsigned int incReduceDB;
 
     bool preprocessing_enabled; // do eliminate (via subsumption, asymm, elim)
 
@@ -184,8 +206,10 @@ private:
         }
         if (!clause_db.hasEmptyClause()) {
             std::array<Lit, 1> unit;
-            unsigned int pos = trail.size();
-            if (propagator.propagate() != nullptr) clause_db.emptyClause();
+            unsigned int pos = trail.size();            
+            if (propagator.propagate() != nullptr) {
+                clause_db.emptyClause();
+            }
             if (!isInConflictingState()) {
                 for (auto it = trail.begin() + pos; it != trail.end(); it++) {
                     assert(trail.reason(it->var()) != nullptr);
@@ -214,7 +238,8 @@ private:
 
             if (subsumption.nTouched() > 0) {
                 augmented_database.cleanup();
-                *logging.log() << "c " << std::this_thread::get_id() << ": Subsumption subsumued " << subsumption.nSubsumed << " and strengthened " << subsumption.nStrengthened << " clauses" << std::endl;
+                if (verbosity > 1) std::cout << "c Removed " << subsumption.nDuplicates << " Duplicate Clauses" << std::endl;
+                if (verbosity > 1) std::cout << "c " << std::this_thread::get_id() << ": Subsumption subsumed " << subsumption.nSubsumed << " and strengthened " << subsumption.nStrengthened << " clauses" << std::endl;
             }
 
             propagateAndMaterializeUnitClauses();
@@ -224,7 +249,7 @@ private:
 
             if (reduction.nTouched() > 0) {
                 augmented_database.cleanup();
-                *logging.log() << "c " << std::this_thread::get_id() << ": Reduction strengthened " << reduction.nTouched() << " clauses" << std::endl;
+                if (verbosity > 1) std::cout << "c " << std::this_thread::get_id() << ": Reduction strengthened " << reduction.nTouched() << " clauses" << std::endl;
             }
 
             propagateAndMaterializeUnitClauses();
@@ -234,12 +259,7 @@ private:
 
             if (elimination.nTouched() > 0) {
                 augmented_database.cleanup();
-                *logging.log() << "c " << std::this_thread::get_id() << ": Eliminiated " << elimination.nTouched() << " variables" << std::endl;
-                for (unsigned int v = 0; v < clause_db.nVars(); v++) {
-                    if (elimination.isEliminated(v)) {
-                        trail.setDecisionVar(v, false);
-                    }
-                }
+                if (verbosity > 1) std::cout << "c " << std::this_thread::get_id() << ": Eliminiated " << elimination.nTouched() << " variables" << std::endl;
             }
 
             num = subsumption.nTouched() + elimination.nTouched() + reduction.nTouched();
@@ -247,6 +267,18 @@ private:
         } 
 
         augmented_database.finalize();
+    }
+
+    void ipasir_callback(Clause* clause) {
+        if (learntCallback != nullptr && clause->size() <= learntCallbackMaxLength) {
+            std::vector<int> to_send;
+            to_send.reserve(clause->size() + 1);
+            for (Lit lit : *clause) {
+                to_send.push_back((lit.var()+1)*(lit.sign()?-1:1));
+            }
+            to_send.push_back(0);
+            learntCallback(learntCallbackState, to_send.data());
+        }
     }
 
 };
@@ -260,19 +292,17 @@ Solver<TPropagate, TLearning, TBranching>::Solver() :
 	conflict_analysis(clause_db, trail),
     branch(clause_db, trail),
     restart(clause_db, trail),
+    reduce(clause_db, trail),
     // simplification
     augmented_database(clause_db),
     subsumption(augmented_database),
     elimination(augmented_database, trail), 
     reduction(augmented_database, trail, propagator), 
-    // stats
-    statistics(*this), 
-    logging(*this),
+    // sonification
+    sonification(SonificationOptions::host, SonificationOptions::port, SonificationOptions::delay),
+    verbosity(SolverOptions::verb), 
     // result
     result(),
-    // reduce db heuristic control
-    nbclausesbeforereduce(ClauseDatabaseOptions::opt_first_reduce_db),
-    incReduceDB(ClauseDatabaseOptions::opt_inc_reduce_db),
     // pre- and inprocessing
     preprocessing_enabled(SolverOptions::opt_preprocessing),
     lastRestartWithInprocessing(0), inprocessingFrequency(SolverOptions::opt_inprocessing), 
@@ -301,6 +331,16 @@ void Solver<TPropagate, TLearning, TBranching>::init(const CNFProblem& problem, 
     // always initialize clause_db _first_
     clause_db.init(problem, allocator, lemma);
 
+    for (Cl* clause : problem) {
+        if (!elimination.has_eliminated_variables()) break;
+        for (Lit lit : *clause) {
+            if (elimination.is_eliminated(lit.var())) {
+                vector<Cl> cor = elimination.undo_elimination(lit.var());
+                for (Cl& cl : cor) clause_db.createClause(cl.begin(), cl.end());
+            }
+        }
+    }
+
     trail.init(clause_db.nVars());
     propagator.init();
     conflict_analysis.init(clause_db.nVars());
@@ -312,17 +352,17 @@ template<class TPropagate, class TLearning, class TBranching>
 lbool Solver<TPropagate, TLearning, TBranching>::search() {
     assert(!clause_db.hasEmptyClause());
 
-    statistics.solverRestartInc();
-    logging.logRestart();
+    sonification.send("/restart", 1);
     for (;;) {
         Clause* confl = (Clause*)propagator.propagate();
 
-        logging.logDecision();
+        sonification.send("/decision", trail.decisionLevel());
+        sonification.send("/assignments", trail.size());
         if (confl != nullptr) { // CONFLICT
-            logging.logConflict();
+            sonification.send("/conflict", trail.size(), true);
 
             if (trail.decisionLevel() == 0) {
-                *logging.log() << "c Conflict found by propagation at level 0" << std::endl;
+                if (verbosity > 1) std::cout << "c Conflict found by propagation at level 0" << std::endl;
                 return l_False;
             }
             
@@ -338,18 +378,8 @@ lbool Solver<TPropagate, TLearning, TBranching>::search() {
 
             trail.backtrack(clause_db.result.backtrack_level);
             trail.propagate(clause->first(), clause);
-
-            if (learntCallback != nullptr && clause->size() <= learntCallbackMaxLength) {
-                std::vector<int> to_send;
-                to_send.reserve(clause->size() + 1);
-                for (Lit lit : *clause) {
-                    to_send.push_back((lit.var()+1)*(lit.sign()?-1:1));
-                }
-                to_send.push_back(0);
-                learntCallback(learntCallbackState, to_send.data());
-            }
-
-            logging.logLearntClause(clause);
+            ipasir_callback(clause);
+            sonification.send("/learnt", clause->size());
         }
         else {
             if (restart.trigger_restart()) {
@@ -360,14 +390,16 @@ lbool Solver<TPropagate, TLearning, TBranching>::search() {
             while (trail.hasAssumptionsNotSet()) {
                 Lit p = trail.nextAssumption();
                 if (trail.value(p) == l_True) {
+                    // std::cout << "c Assumption already satisfied " << p << std::endl;
                     trail.newDecisionLevel(); // Dummy decision level
                 } 
                 else if (trail.value(p) == l_False) {
-                    *logging.log() << "c Conflict found during assumption propagation" << std::endl;
+                    std::cout << "c Conflict found during propagation of assumption " << p << std::endl;
                     result.setConflict(conflict_analysis.analyzeFinal(~p));
                     return l_False;
                 } 
                 else {
+                    // std::cout << "c Propagating Assumption " << p << std::endl;
                     next = p;
                     break;
                 }
@@ -391,14 +423,26 @@ lbool Solver<TPropagate, TLearning, TBranching>::search() {
 
 template<class TPropagate, class TLearning, class TBranching>
 lbool Solver<TPropagate, TLearning, TBranching>::solve() {
-    statistics.runtimeStart("Wallclock");
-    logging.logStart();
+    sonification.send("/start", 1);
+    sonification.send("/variables", nVars());
+    sonification.send("/clauses", nClauses());
     
     result.clear();
+    trail.reset();
+    propagator.reset();
 
+    // prepare variable elimination for new set of assumptions
+    vector<Cl> correction_set = elimination.reset();
+    for (Cl cl : correction_set) {
+        Clause* clause = clause_db.createClause(cl.begin(), cl.end());
+        // std::cout << "VE Correction due to new assumptions: " << *clause << std::endl;
+        if (clause->size() > 2) propagator.attachClause(clause);
+    }
+    
     if (this->preprocessing_enabled) {
-        trail.reset();
+        std::cout << "c Preprocessing ... " << std::endl;
         processClauseDatabase();
+        propagator.reset();
     }
 
     lbool status = isInConflictingState() ? l_False : l_Undef;
@@ -407,21 +451,17 @@ lbool Solver<TPropagate, TLearning, TBranching>::solve() {
         trail.reset();
         branch.reset();
 
-        if (statistics.nReduceCalls() * nbclausesbeforereduce <= statistics.nConflicts()) {
-            nbclausesbeforereduce += incReduceDB;
-
-            if (inprocessingFrequency > 0 && lastRestartWithInprocessing + inprocessingFrequency <= statistics.nReduceCalls()) { 
-                *logging.log() << "c " << std::this_thread::get_id() << ": Inprocessing " << statistics.nReduceCalls() << " (Restart " << statistics.nRestarts() << ", Database size " << clause_db.size() << ")." << std::endl;
-                lastRestartWithInprocessing = statistics.nReduceCalls();
+        if (reduce.trigger_reduce()) {
+            if (inprocessingFrequency > 0 && lastRestartWithInprocessing + inprocessingFrequency <= reduce.nReduceCalls()) { 
+                std::cout << "c Inprocessing ... " << std::endl;
+                lastRestartWithInprocessing = reduce.nReduceCalls();
                 processClauseDatabase();
             }
             else {
-                *logging.log() << "c " << std::this_thread::get_id() << ": Reduction " << statistics.nReduceCalls() << " (Restart " << statistics.nRestarts() << ", Database size " << clause_db.size() << ")." << std::endl;
-                clause_db.reduce();
+                reduce.reduce();
             }            
             clause_db.reorganize();
             branch.process_reduce();
-            *logging.log() << "c " << std::this_thread::get_id() << ": Database size is now " << clause_db.size() << std::endl;
             propagator.reset();
         }
 
@@ -437,10 +477,10 @@ lbool Solver<TPropagate, TLearning, TBranching>::solve() {
     }
 
     if (status == l_Undef) {
-        *logging.log() << "c " << std::this_thread::get_id() << ": Interrupted" << std::endl;
+        if (verbosity > 1) std::cout << "c " << std::this_thread::get_id() << ": Interrupted" << std::endl;
     }
     else {
-        *logging.log() << "c " << std::this_thread::get_id() << ": " << (status == l_True ? "SAT" : "UNSAT") << std::endl;
+        if (verbosity > 1) std::cout << "c " << std::this_thread::get_id() << ": " << (status == l_True ? "SAT" : "UNSAT") << std::endl;
     }
     
     result.setStatus(status);
@@ -451,15 +491,27 @@ lbool Solver<TPropagate, TLearning, TBranching>::solve() {
         }
     }
     else if (status == l_True) {
+        elimination.propagate_eliminated_variables();
         result.setModel(trail);
-        elimination.extendModel(result);
     }
     
     trail.backtrack(0);
     
-    logging.logResult(status);
-    statistics.runtimeStop("Wallclock"); 
+    sonification.send("/stop", status == l_False ? 1 : status == l_True ? 0 : -1);
+
     return status;
+}
+
+template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
+void Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::printStats() {
+    std::cout << "c ************************* " << std::endl << std::left;
+    std::cout << "c " << std::setw(20) << "restarts:" << nRestarts() << std::endl;
+    std::cout << "c " << std::setw(20) << "conflicts:" << nConflicts() << std::endl;
+    std::cout << "c " << std::setw(20) << "decisions:" << nDecisions() << std::endl;
+    std::cout << "c " << std::setw(20) << "propagations:" << nPropagations() << std::endl;
+    std::cout << "c " << std::setw(20) << "peak memory (mb):" << getPeakRSS()/(1024*1024) << std::endl;
+    std::cout << "c " << std::setw(20) << "cpu time (s):" << get_cpu_time() << std::endl;
+    std::cout << "c ************************* " << std::endl << std::left;
 }
 
 }

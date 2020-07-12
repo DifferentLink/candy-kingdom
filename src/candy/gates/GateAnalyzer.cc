@@ -33,7 +33,7 @@ namespace Candy {
 
 GateAnalyzer::GateAnalyzer(const CNFProblem& problem_, GateRecognitionMethod method, int tries, double timeout) :
         problem(problem_), gate_problem(*new GateProblem { problem_ }), runtime(timeout), index(problem_), 
-        maxTries (tries), usePatterns (false), useSemantic (false), useHolistic (false), useIntensification (false)
+        maxTries (tries), usePatterns (false), useSemantic (false), useHolistic (false)
 {
     switch (method) {
         case GateRecognitionMethod::Patterns: usePatterns = true; break;
@@ -46,7 +46,6 @@ GateAnalyzer::GateAnalyzer(const CNFProblem& problem_, GateRecognitionMethod met
 
     if (useSemantic || useHolistic) {
         SolverOptions::opt_sort_variables = false;
-        SolverOptions::opt_sort_watches = false;
         SolverOptions::opt_preprocessing = false;
         solver = createSolver(); 
     }
@@ -54,17 +53,6 @@ GateAnalyzer::GateAnalyzer(const CNFProblem& problem_, GateRecognitionMethod met
 
 GateAnalyzer::~GateAnalyzer() { }
 
-
-
-std::vector<Cl*> GateAnalyzer::getUnitClauses() {
-    std::vector<Cl*> clauses;
-    for (Cl* c : problem) {
-        if (c->size() == 1) {
-            clauses.push_back(c);
-        }
-    }
-    return clauses;
-}
 
 /**
  * Entry Point for Gate Analysis.
@@ -78,22 +66,43 @@ void GateAnalyzer::analyze() {
     std::vector<Cl*> root_clauses;
 
     for (unsigned int count = 0; (maxTries == 0 || count < maxTries) && !runtime.hasTimeout(); count++) {
+        root_clauses.clear();
+
         if (count == 0) {
-            root_clauses = getUnitClauses();
+            for (Cl* clause : problem) {
+                if (clause->size() == 1) {
+                    root_clauses.push_back(clause);
+                }
+            }
+            index.remove(root_clauses);
         }
         else {
             Lit lit = index.getMinimallyUnblockedLiteral();
             if (lit != lit_Undef) {
-                root_clauses = index.getUnblockedClauses(lit);
+                // std::cout << "Found Minimally Unblocked Literal: " << lit << std::endl;
+                root_clauses = index.stripUnblockedClauses(lit);
             }
             else {
+                // std::cout << "No More Root Literal" << std::endl;
                 break;
             }
         }
 
-        if (root_clauses.empty()) continue;
-        
-        gate_recognition(root_clauses);
+        if (root_clauses.empty()) {
+            // std::cout << "No More Roots" << std::endl;
+            continue;
+        }
+
+        std::vector<Lit> candidates;        
+
+        // std::cout << "Selected Candidate Root Clauses: " << root_clauses << std::endl;
+        for (Cl* clause : root_clauses) {            
+            gate_problem.roots.push_back(clause);
+            candidates.insert(candidates.end(), clause->begin(), clause->end());
+            for (Lit l : *clause) gate_problem.setUsedAsInput(l);
+        }
+
+        gate_recognition(candidates);
     }
 
     std::unordered_set<Cl*> remainder;
@@ -106,33 +115,11 @@ void GateAnalyzer::analyze() {
     runtime.stop();
 }
 
-void GateAnalyzer::gate_recognition(std::vector<Cl*> roots) {
-    std::vector<Lit> candidates;
-
-    index.remove(roots);
-
-    for (Cl* clause : roots) {
-        gate_problem.roots.push_back(clause);
-        candidates.insert(candidates.end(), clause->begin(), clause->end());
-        for (Lit l : *clause) gate_problem.setUsedAsInput(l);
-    }
-
-    if (useIntensification) {
-        recognition_with_intensification(candidates);
-    } else {
-        classic_recognition(candidates);
-    }
-}
-
-void GateAnalyzer::classic_recognition(std::vector<Lit> roots) {
+void GateAnalyzer::gate_recognition(std::vector<Lit> roots) {
     std::vector<Lit> candidates;
     std::vector<Lit> frontier { roots.begin(), roots.end() };
 
     //std::cout << "Starting recogintion with the following roots: " << roots << std::endl;
-
-    // while (!candidates.empty()) {
-    //     Lit candidate = candidates.back();
-    //     candidates.pop_back();
     while (!frontier.empty()) { // _breadth_ first search is important here (considering the symmetries in e.g. XOR-encodings)
         candidates.swap(frontier);
 
@@ -144,39 +131,6 @@ void GateAnalyzer::classic_recognition(std::vector<Lit> roots) {
             }
         }
         candidates.clear();
-    }
-}
-
-void GateAnalyzer::recognition_with_intensification(std::vector<Lit> roots) {
-    std::vector<Lit> candidates;
-    std::vector<Lit> frontier { roots.begin(), roots.end() };
-    std::vector<Lit> remainder[3];
-
-    for (int level = 0; level < (useHolistic ? 3 : 2); level++) {
-
-        candidates.swap(frontier);
-        for (Lit candidate : candidates) {
-            if (isGate(candidate, level == 0, level == 1, level == 2)) { 
-                // try these with level 0 (pattern recognition) first
-                frontier.insert(frontier.end(), gate_problem.getGate(candidate).inp.begin(), gate_problem.getGate(candidate).inp.end());
-            } 
-            else { 
-                // remember for next level
-                remainder[level].push_back(candidate);
-            }
-        }
-        candidates.clear();
-
-        if (!frontier.empty()) {
-            // restart analysis with pattern recognition
-            level = -1; 
-        } 
-        else { 
-            // use remainder for processing on the next level
-            sort(remainder[level].begin(), remainder[level].end(), [](Lit l1, Lit l2) { return l1 > l2; });
-            remainder[level].erase(std::unique(remainder[level].begin(), remainder[level].end()), remainder[level].end());
-            frontier.swap(remainder[level]);
-        }
     }
 }
 
@@ -210,13 +164,13 @@ bool GateAnalyzer::isGate(Lit candidate, bool pat, bool sem, bool hol) {
 
         if (monotonic || pattern || semantic || holistic) {
             gate_problem.addGate(candidate, fwd, bwd); 
-            gate_problem.addGateStats(pattern, semantic, holistic, (semantic || holistic) ? solver->getStatistics().nConflicts() : 0);
+            gate_problem.addGateStats(pattern, semantic, holistic, (semantic || holistic) ? solver->nConflicts() : 0);
             index.remove(gate_problem.getGate(candidate).fwd);
             index.remove(gate_problem.getGate(candidate).bwd);
             return true;
         }
         else if (sem || hol) {
-            gate_problem.addUnsuccessfulStats(solver->getStatistics().nConflicts());
+            gate_problem.addUnsuccessfulStats(solver->nConflicts());
         }
     }
     return false;
