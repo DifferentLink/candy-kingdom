@@ -81,7 +81,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace Candy {
 
-template<class TClauses = ClauseDatabase, class TAssignment = Trail, class TPropagate = Propagate, class TLearning = ConflictAnalysis, class TBranching = VSIDS> 
+template<class TPropagate = Propagate, class TLearning = ConflictAnalysis, class TBranching = VSIDS> 
 class Solver : public CandySolverInterface {
 public:
     Solver();
@@ -129,8 +129,9 @@ public:
     }
 
 protected:
-    TClauses clause_db;
-    TAssignment trail;
+    ClauseDatabase clause_db;
+    Trail trail;
+
     TPropagate propagator;
     TLearning conflict_analysis;
     TBranching branch;
@@ -250,8 +251,8 @@ private:
 
 };
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::Solver() : 
+template<class TPropagate, class TLearning, class TBranching>
+Solver<TPropagate, TLearning, TBranching>::Solver() : 
     // Basic Systems
     clause_db(),
     trail(),
@@ -281,20 +282,20 @@ Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::Solver() :
     learntCallbackState(nullptr), learntCallbackMaxLength(0), learntCallback(nullptr)
 { }
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::~Solver() {
+template<class TPropagate, class TLearning, class TBranching>
+Solver<TPropagate, TLearning, TBranching>::~Solver() {
 }
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-void Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::clear() {
+template<class TPropagate, class TLearning, class TBranching>
+void Solver<TPropagate, TLearning, TBranching>::clear() {
     clause_db.clear();
     trail.clear();
     propagator.clear();
     branch.clear();
 }
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-void Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::init(const CNFProblem& problem, ClauseAllocator* allocator, bool lemma) {
+template<class TPropagate, class TLearning, class TBranching>
+void Solver<TPropagate, TLearning, TBranching>::init(const CNFProblem& problem, ClauseAllocator* allocator, bool lemma) {
     assert(trail.decisionLevel() == 0);
 
     // always initialize clause_db _first_
@@ -307,8 +308,8 @@ void Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::init(cons
 }
 
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-lbool Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::search() {
+template<class TPropagate, class TLearning, class TBranching>
+lbool Solver<TPropagate, TLearning, TBranching>::search() {
     assert(!clause_db.hasEmptyClause());
 
     statistics.solverRestartInc();
@@ -388,8 +389,8 @@ lbool Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::search()
     return l_Undef; // not reached
 }
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-lbool Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::solve() {
+template<class TPropagate, class TLearning, class TBranching>
+lbool Solver<TPropagate, TLearning, TBranching>::solve() {
     statistics.runtimeStart("Wallclock");
     logging.logStart();
     
