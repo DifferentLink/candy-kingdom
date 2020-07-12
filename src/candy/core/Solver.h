@@ -502,8 +502,8 @@ lbool Solver<TPropagate, TLearning, TBranching>::solve() {
     return status;
 }
 
-template<class TClauses, class TAssignment, class TPropagate, class TLearning, class TBranching>
-void Solver<TClauses, TAssignment, TPropagate, TLearning, TBranching>::printStats() {
+template<class TPropagate, class TLearning, class TBranching>
+void Solver<TPropagate, TLearning, TBranching>::printStats() {
     std::cout << "c ************************* " << std::endl << std::left;
     std::cout << "c " << std::setw(20) << "restarts:" << nRestarts() << std::endl;
     std::cout << "c " << std::setw(20) << "conflicts:" << nConflicts() << std::endl;
