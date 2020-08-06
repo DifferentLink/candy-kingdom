@@ -156,11 +156,6 @@ public:
 protected:
     ClauseDatabase clause_db;
     Trail trail;
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> 744f7c5b159e123c51b43e5e5bad28b40a3be265
     TPropagate propagator;
     TLearning conflict_analysis;
     TBranching branch;
