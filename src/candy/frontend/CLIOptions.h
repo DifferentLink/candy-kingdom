@@ -59,6 +59,7 @@ namespace SolverOptions {
     extern BoolOption mod;
     extern StringOption opt_certified_file;
     extern BoolOption gate_stats;
+    extern BoolOption gbd_hash;
 
     extern IntOption memory_limit;
     extern IntOption time_limit;

@@ -273,6 +273,7 @@ set(GTEST_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/lib/googletest/googletest/include"
 add_subdirectory(src)
 
 set(CANDY_OBJECTS
+  $<TARGET_OBJECTS:gbd>
   $<TARGET_OBJECTS:gates>
   $<TARGET_OBJECTS:randomsimulation>
   $<TARGET_OBJECTS:rsar>

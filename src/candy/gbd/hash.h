@@ -4,17 +4,20 @@
 #include <string>
 
 #include "candy/core/CNFProblem.h"
+#include "candy/utils/StreamBuffer.h"
+
+namespace Candy {
 
 class Hash {
-private:
-    const Candy::CNFProblem& problem;
-
 public:
-    Hash(const Candy::CNFProblem& problem_);
+    Hash();
 
-    std::string gbd_hash();
-    std::string degree_hash();
+    std::string gbd_hash_from_dimacs(const char* filename);
+    std::string gbd_hash(Candy::CNFProblem& problem);
+    std::string degree_hash(Candy::CNFProblem& problem);
 
 };
+
+}
 
 #endif

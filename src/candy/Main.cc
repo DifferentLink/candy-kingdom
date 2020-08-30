@@ -60,6 +60,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "candy/frontend/SolverFactory.h"
 #include "candy/frontend/CandyBuilder.h"
 #include "candy/utils/Exceptions.h"
+#include "candy/gbd/hash.h"
 
 #include "candy/gates/GateAnalyzer.h"
 #include "candy/rsar/ARSolver.h"
@@ -195,7 +196,15 @@ int main(int argc, char** argv) {
         } else {
             std::cout << "c Reading file: " << argv[1] << std::endl; 
             inputFilename = argv[1];
-            problem.readDimacsFromFile(inputFilename);
+
+            if (SolverOptions::gbd_hash) {
+                Candy::Hash gbdhash { };
+                std::cout << gbdhash.gbd_hash_from_dimacs(inputFilename) << std::endl;
+                return 0;
+            }
+            else {                
+                problem.readDimacsFromFile(inputFilename);
+            }
         }
     }
     catch (ParserException& e) {

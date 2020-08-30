@@ -58,6 +58,7 @@ namespace SolverOptions {
     BoolOption mod("MAIN", "model", "show model.", false);
     StringOption opt_certified_file("MAIN", "certified-output", "Certified UNSAT output file", "");
     BoolOption gate_stats("MAIN", "gate-stats", "show only gate recognizer statistics.", false);
+    BoolOption gbd_hash("MAIN", "gbd-hash", "calculate and output gbd hash of given file.", false);
 
     IntOption memory_limit("MAIN", "memory-limit", "Limit on memory usage in mega bytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
     IntOption time_limit("MAIN", "time-limit", "Limit on wallclock runtime in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
