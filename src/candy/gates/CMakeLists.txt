@@ -10,4 +10,5 @@ add_library(gates OBJECT
     datastructures/BooleanCircuit.h
     datastructures/Gate.h
     datastructures/GateVertex.h
-    datastructures/Signature.h)
+    datastructures/Signature.h
+    datastructures/StructuralFormula.h)
