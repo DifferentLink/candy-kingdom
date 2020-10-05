@@ -197,6 +197,12 @@ public:
         for (vector<int>& clause : mixedClauses) sortByPolarity(clause);
     }
 
+    TupleNotation() {
+        this->negativeClauses = {};
+        this->mixedClauses = {};
+        this->positiveClauses = {};
+    }
+
     explicit TupleNotation(const For& formula) {
         this->negativeClauses = extractAllNegativeClauses(formula);
         this->mixedClauses = extractAllMixedClauses(formula);
@@ -234,8 +240,8 @@ public:
         return formula;
     }
 
-    static vector<vector<int>> getEmptyFormula() {
-        return {{}};
+    static TupleNotation getEmptyFormula() {
+        return TupleNotation();
     }
 
     int operator[](unsigned int i) const {
