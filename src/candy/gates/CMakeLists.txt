@@ -11,4 +11,5 @@ add_library(gates OBJECT
     datastructures/Gate.h
     datastructures/GateVertex.h
     datastructures/Signature.h
-    datastructures/StructuralFormula.h)
+    datastructures/StructuralFormula.h
+    datastructures/PermutationList.h)
