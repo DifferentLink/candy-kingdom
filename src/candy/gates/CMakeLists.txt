@@ -12,4 +12,6 @@ add_library(gates OBJECT
     datastructures/GateVertex.h
     datastructures/Signature.h
     datastructures/StructuralFormula.h
-    datastructures/PermutationList.h)
+    datastructures/PermutationList.h
+    algorithms/BooleanCircuitVisualizer.cc
+    algorithms/BooleanCircuitVisualizer.h)
