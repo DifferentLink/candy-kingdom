@@ -3,7 +3,10 @@ add_executable(gates_tests
     GateDFSTraversalTests.cc
     MiterDetectorTests.cc
     ${CANDY_OBJECTS}
-    $<TARGET_OBJECTS:testutils>)
+    $<TARGET_OBJECTS:testutils>
+    algorithms/UnificatorTest.cc
+    datastructures/SignatureTest.cc
+    datastructures/TupleNotationTest.cc)
 candy_executable_customizations(gates_tests)
 
 target_include_directories(gates_tests PUBLIC ${PROJECT_SOURCE_DIR}/lib/googletest/googletest/include
