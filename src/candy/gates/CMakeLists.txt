@@ -5,4 +5,5 @@ add_library(gates OBJECT
     GateProblem.h
     AIGProblem.h
     MiterDetector.h
-    MiterDetector.cc)
+    MiterDetector.cc
+    datastructures/TupleNotation.h)
