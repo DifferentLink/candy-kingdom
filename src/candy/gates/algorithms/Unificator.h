@@ -9,6 +9,7 @@
 using namespace std;
 
 class Unificator {
+public:
     /**
      * @param literal
      * @return the variable corresponding to the literal
