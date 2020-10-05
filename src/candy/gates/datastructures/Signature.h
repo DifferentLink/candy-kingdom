@@ -10,6 +10,10 @@ using namespace std;
 struct Tuple {
     unsigned long x;
     unsigned long y;
+
+    inline bool operator==(const Tuple& tuple) const {
+        return this->x == tuple.x && this->y == tuple.y;
+    }
 };
 
 class Signature {
@@ -24,7 +28,7 @@ public:
             negative.push_back(clause.size());
         }
         for (const auto& clause : formula.getMixedClauses()) {
-            mixed.push_back(Tuple({ clause.size(), TupleNotation::numNegativeLiterals(clause) }));
+            mixed.push_back(Tuple({ TupleNotation::numNegativeLiterals(clause), clause.size() }));
         }
         for (const auto& clause : formula.getPositiveClauses()) {
             positive.push_back(clause.size());
@@ -53,16 +57,18 @@ public:
         for (const auto& i : negative) {
             out.append(to_string(i) + ", ");
         }
-        out = out.substr(0, out.size() - 3);
+        out = out.substr(0, out.size() - 2);
         out.append(" | ");
         for (const auto& tuple : mixed) {
-            out.append("(" + to_string(tuple.x) + ", " + to_string(tuple.y) + ")");
+            out.append("(" + to_string(tuple.x) + ", " + to_string(tuple.y) + "), ");
         }
+        out = out.substr(0, out.size() - 2);
         out.append(" | ");
         for (const auto& i : positive) {
-            out.append(to_string(i));
+            out.append(to_string(i) + ", ");
         }
-        out = out.substr(0, out.size() - 3);
+        out = out.substr(0, out.size() - 2);
+        out.append(")");
         return out;
     }
 

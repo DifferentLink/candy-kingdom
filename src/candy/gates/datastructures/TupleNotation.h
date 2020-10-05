@@ -78,9 +78,9 @@ public:
             } else {
                 foundPositive = true;
             }
-            if (foundPositive && foundNegative) return false;
+            if (foundPositive && foundNegative) return true;
         }
-        return true;
+        return false;
     }
 
     static vector<vector<int>> extractAllNegativeClauses(const For &formula) {
@@ -131,39 +131,39 @@ public:
         return mixedClauses;
     }
 
-    static bool compareClauseLengths(const vector<int> *clause1, const vector<int> *clause2) {
-        return clause1->size() < clause2->size();
+    static bool compareClauseLengths(const vector<int>& clause1, const vector<int>& clause2) {
+        return clause1.size() < clause2.size();
     }
 
-    static bool compareNegClauseLengths(const vector<int> *cl1, const vector<int> *cl2) {
-        return cl1->size() > cl2->size();
+    static bool compareNegClauseLengths(const vector<int>& cl1, const vector<int>& cl2) {
+        return cl1.size() > cl2.size();
     }
 
-    static bool compareClausePolarity(const int *lit1, const int *lit2) {
-        return *lit1 <= *lit2;
+    static bool compareClausePolarity(const int lit1, const int lit2) {
+        return lit1 <= lit2;
     }
 
-    static bool numNegativeLiterals(const vector<int> *clause) {
+    static unsigned numNegativeLiterals(const vector<int> *clause) {
         unsigned int numNegativeLiterals = 0;
         for (const int i : *clause) if (i < 0) numNegativeLiterals++;
         return numNegativeLiterals;
     }
 
-    static bool numNegativeLiterals(const vector<int>& clause) {
+    static unsigned int numNegativeLiterals(const vector<int>& clause) {
         unsigned int numNegativeLiterals = 0;
         for (const int i : clause) if (i < 0) numNegativeLiterals++;
         return numNegativeLiterals;
     }
 
-    static bool numPositiveLiterals(const vector<int> *clause) {
+    static unsigned numPositiveLiterals(const vector<int> *clause) {
         return clause->size() - numNegativeLiterals(clause);
     }
 
-    static bool compareNumberOfNegativeLiterals(const vector<int> *cl1, const vector<int> *cl2) {
+    static bool compareNumberOfNegativeLiterals(const vector<int>& cl1, const vector<int>& cl2) {
         return numNegativeLiterals(cl1) < numNegativeLiterals(cl2);
     }
 
-    static bool compareNegNumberOfNegativeLiterals(const vector<int> *cl1, const vector<int> *cl2) {
+    static bool compareNegNumberOfNegativeLiterals(const vector<int>& cl1, const vector<int>& cl2) {
         return numNegativeLiterals(cl1) > numNegativeLiterals(cl2);
     }
 
@@ -195,6 +195,7 @@ public:
         sortDecreasingByClauseLength(mixedClauses);
         sortDecreasingByNumberOfNegativeLiterals(mixedClauses);
         for (vector<int>& clause : mixedClauses) sortByPolarity(clause);
+        sortByClauseLength(positiveClauses);
     }
 
     TupleNotation() {
@@ -259,13 +260,11 @@ public:
         string out = "(";
         for (const auto& clause : this->getFormula()) {
             out.append("(");
-            for (const auto& lit : clause) {
-                out.append(to_string(lit));
-                out.append(", ");
-            }
-            out.substr(0, out.size() - 3);
-            out.append(")");
+            for (const auto& lit : clause) out.append(to_string(lit) + ", ");
+            out = out.substr(0, out.size() - 2);
+            out.append("), ");
         }
+        out = out.substr(0, out.size() - 2);
         out.append(")");
         return out;
     }
