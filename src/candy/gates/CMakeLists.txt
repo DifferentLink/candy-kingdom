@@ -6,4 +6,4 @@ add_library(gates OBJECT
     AIGProblem.h
     MiterDetector.h
     MiterDetector.cc
-    datastructures/TupleNotation.h)
+    datastructures/TupleNotation.h datastructures/BooleanCircuit.h datastructures/Gate.h datastructures/GateVertex.h)
