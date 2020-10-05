@@ -14,4 +14,6 @@ add_library(gates OBJECT
     datastructures/StructuralFormula.h
     datastructures/PermutationList.h
     algorithms/BooleanCircuitVisualizer.cc
-    algorithms/BooleanCircuitVisualizer.h)
+    algorithms/BooleanCircuitVisualizer.h
+    algorithms/Unificator.cc
+    algorithms/Unificator.h)
