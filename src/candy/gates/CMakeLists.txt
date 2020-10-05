@@ -1,3 +1,6 @@
+add_subdirectory(algorithms
+        datastructures)
+
 add_library(gates OBJECT
     GateAnalyzer.cc
     GateAnalyzer.h
@@ -5,17 +8,4 @@ add_library(gates OBJECT
     GateProblem.h
     AIGProblem.h
     MiterDetector.h
-    MiterDetector.cc
-    datastructures/TupleNotation.h
-    datastructures/BooleanCircuit.h
-    datastructures/Gate.h
-    datastructures/GateVertex.h
-    datastructures/Signature.h
-    datastructures/StructuralFormula.h
-    datastructures/PermutationList.h
-    algorithms/BooleanCircuitVisualizer.cc
-    algorithms/BooleanCircuitVisualizer.h
-    algorithms/Unificator.cc
-    algorithms/Unificator.h
-    algorithms/GraphBasedSequentialCounterRecognizer.cc
-    algorithms/GraphBasedSequentialCounterRecognizer.h)
+    MiterDetector.cc)

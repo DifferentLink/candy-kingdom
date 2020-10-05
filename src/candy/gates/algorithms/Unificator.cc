@@ -1,22 +1,36 @@
 #include "Unificator.h"
+#include <candy/gates/datastructures/TupleNotation.h>
 #include <candy/gates/datastructures/Signature.h>
 
 /**
-     * Try to unify lit1 with literal2 using eta. If eta(lit1) is undefined and the polarities of the literals match
-     * then update eta by setting eta(var(lit1)) := var(literal2) and return true. If eta(var(lit1)) = var(literal2)
-     * return true. Otherwise return false;
-     * @param literal1
-     * @param literal2
-     * @param eta
-     * @return
-     */
-inline bool Unificator::unifyLiteral(const int literal1, const int literal2, map<unsigned int, unsigned int>& eta) {
+* Try to unify lit1 with literal2 using eta. If eta(lit1) is undefined and the polarities of the literals match
+* then update eta by setting eta(var(lit1)) := var(literal2) and return true. If eta(var(lit1)) = var(literal2)
+* return true. Otherwise return false;
+* @param literal1
+* @param literal2
+* @param eta
+* @return
+ * int literal1, int literal2, map<unsigned int, unsigned int>& eta
+*/
+/*bool Unificator::unifyLiteral(int literal1, int literal2, map<unsigned int, unsigned int>& eta) {
+    return true;
     if (isDefined(eta, literal1)) {
         return eta.at(literal1) == var(literal2);
+    } else {
+        eta.insert({ var(literal1), var(literal2) });
+        return true;
     }
-    return false;
 }
+ */
 
+/**
+ *
+ * @param clause1
+ * @param clause2
+ * @param eta
+ * @return
+ */
+/*
 bool Unificator::unifyClauseL2(const vector<int>& clause1,
                                const vector<int>& clause2,
                                map<unsigned int, unsigned int>& eta) {
@@ -182,4 +196,6 @@ bool Unificator::unifyL3(const vector<int>& clause1,
                || (mx_1 == y_3 && mx_2 == y_2 && mx_3 == y_1);
     }
     return false; // todo: this line should be unreachable?
+
 }
+*/
