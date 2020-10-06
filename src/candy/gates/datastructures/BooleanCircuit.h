@@ -27,6 +27,7 @@ private:
     vector<vector<GateVertex>> inEdges;
 
 public: // todo: move implementation to cc
+    static const vector<int> emptyClause;
     static TupleNotation const emptyFormula;
     static Gate const nullGate;
     static GateVertex const nullVertex;

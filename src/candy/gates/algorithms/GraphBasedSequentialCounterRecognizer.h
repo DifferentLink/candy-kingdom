@@ -6,12 +6,12 @@
 #include <map>
 
 class GraphBasedSequentialCounterRecognizer {
+private:
     static StructuralFormula recognizeLTSEQ_n_1(TupleNotation& formula,
                                                 BooleanCircuit& circuit,
                                                 map<string, unsigned int> eta);
-
-    static const TupleNotation &findNonGateClausesOfLTSEQ_n_1();
 };
 
+const GateVertex nullVertex = BooleanCircuit::getNullVertex();
 
 #endif //CANDY_GRAPHBASEDSEQUENTIALCOUNTERRECOGNIZER_H
