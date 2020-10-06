@@ -29,7 +29,7 @@ private:
 public: // todo: move implementation to cc
     static const vector<int> emptyClause;
     static TupleNotation const emptyFormula;
-    static Gate const nullGate;
+    static Recognition::Gate const nullGate;
     static GateVertex const nullVertex;
 
     const vector<GateVertex> &getGates() const {
@@ -53,7 +53,7 @@ public: // todo: move implementation to cc
      * @param gate the gate to be added to the Boolean circuit
      * @return the ID of the gate added
      */
-    unsigned long addUniqueGate(const Gate& gate) {
+    unsigned long addUniqueGate(const Recognition::Gate& gate) {
         GateVertex vertex {++this->lastID, gate};
         gates.push_back(vertex);
         return vertex.getId();

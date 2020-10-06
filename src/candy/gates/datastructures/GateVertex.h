@@ -7,10 +7,10 @@
 class GateVertex {
 private:
     unsigned long id;
-    Gate gate;
+    Recognition::Gate gate;
 
 public:
-    GateVertex(const unsigned long id, const Gate &gate) : id(id), gate(gate) {};
+    GateVertex(const unsigned long id, const Recognition::Gate &gate) : id(id), gate(gate) {};
 
     GateVertex(const GateVertex& gateVertex) : id(gateVertex.id), gate(gateVertex.gate) {};
 
@@ -18,12 +18,12 @@ public:
         return id;
     }
 
-    const Gate &getGate() const {
+    const Recognition::Gate &getGate() const {
         return gate;
     }
 
     static bool isNull(const GateVertex& vertex) {
-        return vertex.id == 0 && Gate::isNullGate(vertex.gate);
+        return vertex.id == 0 && Recognition::Gate::isNullGate(vertex.gate);
     }
 };
 

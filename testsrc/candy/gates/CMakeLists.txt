@@ -6,7 +6,7 @@ add_executable(gates_tests
     $<TARGET_OBJECTS:testutils>
     algorithms/UnificatorTest.cc
     datastructures/SignatureTest.cc
-    datastructures/TupleNotationTest.cc)
+    datastructures/TupleNotationTest.cc algorithms/GraphBasedSequentialCounterRecognizerTest.cc)
 candy_executable_customizations(gates_tests)
 
 target_include_directories(gates_tests PUBLIC ${PROJECT_SOURCE_DIR}/lib/googletest/googletest/include

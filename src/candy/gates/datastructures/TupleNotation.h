@@ -269,6 +269,18 @@ public:
         return out;
     }
 
+    string toDIMACS() const {
+        string out;
+        const auto& formula = this->getFormula();
+        for (const auto& clause : formula) {
+            for (const auto& literal : clause) {
+                out.append(to_string(literal) + " ");
+            }
+            out.append(" 0\n");
+        }
+        return out;
+    }
+
     static bool isEmpty(const TupleNotation& formula) {
         return formula.negativeClauses.empty() && formula.mixedClauses.empty() && formula.positiveClauses.empty();
     }

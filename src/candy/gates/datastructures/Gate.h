@@ -2,11 +2,13 @@
 #define CANDY_GATE_H
 
 #include <vector>
+#include <set>
 #include "candy/core/SolverTypes.h"
 #include "TupleNotation.h"
 
 using namespace std;
 
+namespace Recognition {
 class Gate {
 private:
     vector<unsigned int> inVariables;
@@ -14,11 +16,16 @@ private:
     int outLiteral;
 
 public:
-    Gate(const vector<unsigned int> &inVariables, const TupleNotation &formula, int outLiteral) : inVariables(
-            inVariables), formula(formula), outLiteral(outLiteral) {};
+    Gate(const TupleNotation &formula, int outLiteral) {
+        set<unsigned int, greater<unsigned int>> inVars;
+        for (const auto& clause : formula.getFormula()) {
+            for (const auto& lit : clause) inVars.insert(abs(lit));
+        }
+        inVariables = vector<unsigned int>(inVars.begin(), inVars.end());
+    }
 
     static Gate getNullGate() {
-        return Gate({ }, TupleNotation::getEmptyFormula(), 0);
+        return Recognition::Gate(TupleNotation::getEmptyFormula(), 0);
     }
 
     static bool isNullGate(const Gate& gate) {
@@ -37,4 +44,5 @@ public:
         return outLiteral;
     }
 };
+}
 #endif //CANDY_GATE_H
