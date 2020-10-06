@@ -14,7 +14,7 @@ using namespace std;
  * of some of the operations provided.
  */
 class BooleanCircuit {
-private: // todo: assign correct visibility modifier
+private:
     /**
      * IDs start counting at 1, while 0 indicates an unsuccessful operation.
      * All procedures guarantee that the the vertex with the corresponding ID
@@ -26,7 +26,11 @@ private: // todo: assign correct visibility modifier
     vector<vector<GateVertex>> outEdges;
     vector<vector<GateVertex>> inEdges;
 
-public:
+public: // todo: move implementation to cc
+    static TupleNotation const emptyFormula;
+    static Gate const nullGate;
+    static GateVertex const nullVertex;
+
     const vector<GateVertex> &getGates() const {
         return gates;
     }
@@ -37,6 +41,10 @@ public:
 
     const vector<vector<GateVertex>> &getInEdges() const {
         return inEdges;
+    }
+
+    static GateVertex getNullVertex() {
+        return nullVertex;
     }
 
     /**
@@ -124,7 +132,7 @@ public:
                 if (unifies) return targetVertex;
             }
         }
-        return GateVertex::getNullVertex();
+        return nullVertex;
     }
 
     //const vector<GateVertex*> hopTwo(const unsigned long id, const TupleNotation formula) { // todo implement this function properly

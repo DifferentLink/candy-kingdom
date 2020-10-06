@@ -22,10 +22,6 @@ public:
         return gate;
     }
 
-    static const GateVertex getNullVertex() {
-        return GateVertex(0, Gate::getNullGate());
-    }
-
     static bool isNull(const GateVertex& vertex) {
         return vertex.id == 0 && Gate::isNullGate(vertex.gate);
     }

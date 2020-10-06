@@ -4,4 +4,4 @@ add_library(TupleNotation.h
         GateVertex.h
         Signature.h
         StructuralFormula.h
-        PermutationList.h)
+        PermutationList.h BooleanCircuit.cc)
