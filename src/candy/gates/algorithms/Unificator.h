@@ -60,6 +60,11 @@ public:
      * @param lit the literal
      * @return whether eta(var(literal)) is defined
      */
+    static inline bool isDefined(const map<string, unsigned int>& eta, const int literal) {
+        auto iterator = eta.find(var(to_string(literal)));
+        return iterator != eta.end();
+    }
+
     static inline bool isDefined(const map<string, unsigned int>& eta, const string& literal) {
         auto iterator = eta.find(var(literal));
         return iterator != eta.end();
@@ -70,6 +75,12 @@ public:
             if (x.second == literal) return x;
         }
         return {0, 0};
+    }
+
+    static unsigned int numNegativeLiterals(const vector<string>& clause) {
+        unsigned int num = 0;
+        for (const auto& literal : clause) if (getPolarity(literal) == -1) num++;
+        return num;
     }
 
     /**
@@ -140,7 +151,76 @@ public:
             }
         }
         return false; // todo: this line should be unreachable?
+    }
 
+    static bool unifyClauseL2(const TupleNotation& clause1,
+                              const TupleNotation& clause2,
+                              map<unsigned int, unsigned int> eta) {
+        assert(clause1.size() == 1 && clause2.size() == 1);
+        return unifyClauseL2(clause1.getFormula().at(0), clause2.getFormula().at(0), eta);
+    }
+
+    static bool unifyClauseL2(const vector<int>& clause1,
+                              const TupleNotation& clause2,
+                              map<unsigned int, unsigned int> eta) {
+        assert(clause2.size() == 1);
+        return unifyClauseL2(clause1, clause2.getFormula().at(0), eta);
+    }
+
+    static bool unifyClauseL2(const TupleNotation& clause1,
+                              const vector<int>& clause2,
+                              map<unsigned int, unsigned int> eta) {
+        assert(clause1.size() == 1);
+        return unifyClauseL2(clause1.getFormula().at(0), clause2, eta);
+    }
+
+    static bool unifyClauseL2(const vector<string>& clause1,
+                              const vector<int>& clause2,
+                              map<string, unsigned int>& eta) {
+        if (clause1.size() != 2 || clause2.size() != 2) return false;
+
+        const string x_1 = clause1.at(0);
+        const string x_2 = clause1.at(1);
+        const int y_1 = clause2.at(0);
+        const int y_2 = clause2.at(1);
+
+        if (numNegativeLiterals(clause1) == TupleNotation::numNegativeLiterals(clause2)) {
+            if (!isDefined(eta, var(x_1)) && !isDefined(eta, var(x_2))) {
+                eta.insert({ var(x_1), var(y_1) });
+                eta.insert({ var(x_2), var(y_2) });
+                return true;
+            } else if (isDefined(eta, x_1) && !isDefined(eta, x_2)) {
+                auto mx_1 = eta.find(var(x_1));
+                if (mx_1->second == y_1) {
+                    if (getPolarity(x_2) == getPolarity(y_2)) {
+                        eta.insert({ var(x_2), var(y_2) });
+                        return true;
+                    } else return false;
+                } else if (mx_1->second == y_2) {
+                    if (getPolarity(x_2) == getPolarity(y_1)) {
+                        eta.insert({ var(x_2), var(y_1) });
+                        return true;
+                    } else return false;
+                } else return false;
+            } else if (!isDefined(eta, x_1) && isDefined(eta, x_2)) {
+                auto mx_2 = eta.find(var(x_2));
+                if (mx_2->second == y_1) {
+                    if (getPolarity(x_1) == getPolarity(y_1)) {
+                        eta.insert({ var(x_1), var(y_1) });
+                        return true;
+                    } else return false;
+                } else if (mx_2->second == y_2) {
+                    if (getPolarity(x_1) == getPolarity(y_2)) {
+                        eta.insert({ var(x_1), var(y_2) });
+                    } else return false;
+                } else return false;
+            } else {
+                int mx_1 = eta.find(var(x_1))->second;
+                int mx_2 = eta.find(var(x_2))->second;
+                return ((mx_1 == var(y_1) && mx_2 == var(y_2)) || (mx_1 == var(y_2) && mx_2 == var(y_1)));
+            }
+        }
+        return false; // todo: this line should be unreachable?
     }
 
     static bool unifyClauseL3(const vector<int>& clause1,
