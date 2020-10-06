@@ -1,6 +1,5 @@
 add_subdirectory(algorithms)
 add_subdirectory(datastructures)
-add_subdirectory(utilities)
 
 add_library(gates OBJECT
     GateAnalyzer.cc
@@ -9,4 +8,7 @@ add_library(gates OBJECT
     GateProblem.h
     AIGProblem.h
     MiterDetector.h
-    MiterDetector.cc)
+    MiterDetector.cc
+    utilities/IOTools.h
+    utilities/FormulaTools.cc
+    utilities/FormulaTools.h)
