@@ -4,7 +4,7 @@
 #include <fstream>
 #include "FormulaTools.h"
 
-unsigned int countVariables(const string &formula) {
+unsigned int FormulaTools::countVariables(const string &formula) {
     unsigned int max = 0;
     istringstream stream(formula);
     for (string s; stream >> s; ) {
@@ -16,7 +16,7 @@ unsigned int countVariables(const string &formula) {
     return max;
 }
 
-unsigned int countClauses(const string &formula) {
+unsigned int FormulaTools::countClauses(const string &formula) {
     unsigned int count = 0;
     for (unsigned long lastFound = 0; lastFound != string::npos; lastFound = formula.find(" 0", ++lastFound)) {
         ++count;
@@ -24,13 +24,13 @@ unsigned int countClauses(const string &formula) {
     return count;
 }
 
-string generateDIMACSHeader(const string &formula) {
+string FormulaTools::generateDIMACSHeader(const string &formula) {
     return "p cnf "
-           + to_string(countVariables(formula)) + " "
-           + to_string(countClauses(formula));
+           + to_string(FormulaTools::countVariables(formula)) + " "
+           + to_string(FormulaTools::countClauses(formula));
 }
 
-unsigned int getMaxVar(const vector<int> &literals) {
+unsigned int FormulaTools::getMaxVar(const vector<int> &literals) {
     unsigned int max = 0;
     for (const auto literal : literals) if (abs(literal) > max) max = abs(literal);
     return max;
@@ -51,7 +51,7 @@ void buildExplicitConnections(BooleanCircuit& circuit) {
     }
 }
 
-void writeToDIMACS(const TupleNotation &formula, const string &filename) {
+void FormulaTools::writeToDIMACS(const TupleNotation &formula, const string &filename) {
     string outFilename = filename + ".cnf";
     ofstream oFile(outFilename);
     string formulaAsDIMACS = formula.toDIMACS();
@@ -66,7 +66,7 @@ Recognition::Gate toRecognitionGate(const Candy::Gate& gate) {
     return newGate;
 }
 
-BooleanCircuit toCircuit(const GateProblem& gateProblem) {
+BooleanCircuit FormulaTools::toCircuit(const GateProblem& gateProblem) {
     BooleanCircuit circuit;
     for (const Candy::Gate& gate : gateProblem.gates) {
         //if (gate.isDefined()) circuit.addUniqueGate(gate); todo: convert gate
@@ -80,10 +80,10 @@ BooleanCircuit toCircuit(For& formula) {
     GateAnalyzer gateAnalyzer{ problem };
     gateAnalyzer.analyze();
     GateProblem gateProblem = gateAnalyzer.getResult();
-    return toCircuit(gateProblem);
+    return FormulaTools::toCircuit(gateProblem);
 }
 
-GateProblem gateProblemFromDIMACS(const string& filename) {
+GateProblem FormulaTools::gateProblemFromDIMACS(const string& filename) {
     CNFProblem problem;
     problem.readDimacsFromFile(filename.c_str());
     GateAnalyzer gateAnalyzer { problem };
@@ -91,8 +91,8 @@ GateProblem gateProblemFromDIMACS(const string& filename) {
     return gateAnalyzer.getResult();
 }
 
-BooleanCircuit toCircuit(const TupleNotation &formula) {
+BooleanCircuit FormulaTools::toCircuit(const TupleNotation &formula) {
     string filename = "tmpDIMACS";
-    writeToDIMACS(formula, filename);
-    return toCircuit(gateProblemFromDIMACS(filename));
+    FormulaTools::writeToDIMACS(formula, filename);
+    return FormulaTools::toCircuit(FormulaTools::gateProblemFromDIMACS(filename));
 }
