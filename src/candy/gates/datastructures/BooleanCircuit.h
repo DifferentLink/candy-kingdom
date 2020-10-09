@@ -2,9 +2,11 @@
 #define CANDY_BOOLEANCIRCUIT_H
 
 #include <vector>
-#include "Gate.h"
+#include <fstream>
+#include <candy/gates/GateAnalyzer.h>
+#include <candy/gates/utilities/IOTools.h>
 #include "GateVertex.h"
-#include "../../../../../candy-kingdom-thesisfork/src/candy/gates/datastructures/TupleNotation.h"
+#include "TupleNotation.h"
 
 using namespace std;
 
@@ -22,15 +24,29 @@ private:
      */
     unsigned long lastID = 0;
 
-    vector<GateVertex> gates;
-    vector<vector<GateVertex>> outEdges;
-    vector<vector<GateVertex>> inEdges;
+    vector<GateVertex> gates { };
+    vector<vector<GateVertex>> outEdges { };
+    vector<vector<GateVertex>> inEdges { };
 
 public: // todo: move implementation to cc
-    static const vector<int> emptyClause;
+    static vector<int> const emptyClause;
     static TupleNotation const emptyFormula;
-    static Recognition::Gate const nullGate;
     static GateVertex const nullVertex;
+
+    BooleanCircuit() = default;
+
+    BooleanCircuit(const string& formula) {
+        CNFProblem problem;
+        string filename = "tmp";
+        ofstream oFile(filename);
+        oFile << IOTools::generateDIMACSHeader(formula) << endl << formula << endl;
+        oFile.close();
+        problem.readDimacsFromFile(filename.c_str());
+        GateAnalyzer gateAnalyzer { problem };
+        gateAnalyzer.analyze();
+        GateProblem gateProblem = gateAnalyzer.getResult();
+        for (Gate& gate : gateProblem.gates) if (gate.isDefined()) addUniqueGate(gate);
+    }
 
     const vector<GateVertex> &getGates() const {
         return gates;
@@ -48,14 +64,32 @@ public: // todo: move implementation to cc
         return nullVertex;
     }
 
+    const GateVertex& findGateByOutput(const Lit outLiteral) const {
+        for (const auto& gate : gates) if (gate.getGate().out == outLiteral) return gate;
+        return nullVertex;
+    }
+
+    bool hasInput(const GateVertex& gate, const Lit lit) {
+        for (const auto& var : gate.getInVariables()) {
+            if (var == lit.var()) return true;
+        }
+        return false;
+    }
+
     /**
      * Adds a gate to the Boolean circuit that is known to not already be contained in the instance.
      * @param gate the gate to be added to the Boolean circuit
      * @return the ID of the gate added
      */
-    unsigned long addUniqueGate(const Recognition::Gate& gate) {
+    unsigned long addUniqueGate(const Gate gate) {
         GateVertex vertex {++this->lastID, gate};
         gates.push_back(vertex);
+        for (const auto& existingGate : gates) {
+            if (hasInput(existingGate, vertex.getOutLiteral())) addUniqueEdge(vertex, existingGate);
+            if (hasInput(vertex, existingGate.getOutLiteral())) addUniqueEdge(existingGate, vertex);
+        }
+        outEdges.emplace_back();
+        inEdges.emplace_back();
         return vertex.getId();
     }
 
@@ -63,22 +97,26 @@ public: // todo: move implementation to cc
         return gates.at(id - 1);
     }
 
+private:
     /**
      * Add an edge to the Boolean circuit that is known to not already be contained in the instance.
      * @param fromID the gate from which the edge goes
      * @param toID the gate to which the edge goes
      */
-    void addUniqueEdge(const unsigned long fromID, const unsigned long toID) {
-        outEdges.at(fromID - 1).push_back(getGateVertex(toID));
-        inEdges.at(toID - 1).push_back(getGateVertex(fromID));
+    void addUniqueEdge(const GateVertex& from, const GateVertex& to) {
+        outEdges.at(from.getId() - 1).push_back(getGateVertex(to.getId()));
+        inEdges.at(to.getId() - 1).push_back(getGateVertex(from.getId()));
     }
 
+public:
     unsigned long getNumGates() const {
         return gates.size();
     }
 
     unsigned long getNumEdges() const {
-        return outEdges.size();
+        unsigned int numEdges = 0;
+        for (const auto& vertex : outEdges) if (!vertex.empty()) numEdges++;
+        return numEdges;
     }
 
     /**
@@ -95,7 +133,7 @@ public: // todo: move implementation to cc
      * @param the gate
      * @return the outgoing edges of the gate
      */
-    vector<GateVertex>& getOutEdges(const GateVertex& gate) {
+    const vector<GateVertex>& getOutEdges(const GateVertex& gate) const {
         return outEdges.at(gate.getId() - 1);
     }
 
@@ -104,7 +142,7 @@ public: // todo: move implementation to cc
      * @param id the ID of the gate
      * @return the ingoing edges of the gate
      */
-    vector<GateVertex>& getInEdges(const unsigned long id) {
+    const vector<GateVertex>& getInEdges(const unsigned long id) const {
         return inEdges.at(id - 1);
     }
 
@@ -129,7 +167,7 @@ public: // todo: move implementation to cc
     const GateVertex& hop(const unsigned long id, const TupleNotation formula) { // todo add unification
         bool unifies = true;
         for (GateVertex& hopVertex : getOutEdges(id)) {
-            for (GateVertex& targetVertex : getInEdges(hopVertex.getId())) {
+            for (const GateVertex& targetVertex : getInEdges(hopVertex.getId())) {
                 if (unifies) return targetVertex;
             }
         }

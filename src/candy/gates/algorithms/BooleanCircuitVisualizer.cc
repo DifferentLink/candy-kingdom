@@ -1,18 +1,17 @@
 #include "BooleanCircuitVisualizer.h"
 
-BooleanCircuitVisualizer::BooleanCircuitVisualizer(const BooleanCircuit &circuit) : circuit(circuit) {}
 
-string BooleanCircuitVisualizer::toDot() {
+string BooleanCircuitVisualizer::toDot(const BooleanCircuit& circuit) {
     string vertices;
     string edges;
 
-    for (const auto& fromVertex : this->circuit.getGates()) {
-        string gateName = "\"" + fromVertex.getGate().getFormula().toString() + "\"";
+    for (auto& fromVertex : circuit.getGates()) {
+        string gateName = "\"" + fromVertex.getFormula().toString() + "\"\n";
         vertices.append(gateName);
-        for (const auto& toVertex : this->circuit.getOutEdges(fromVertex)) {
-            edges.append(gateName + "->" + "\"" + toVertex.getGate().getFormula().toString() + "\"");
+        for (auto& toVertex : circuit.getOutEdges(fromVertex)) {
+            edges.append(gateName + "->" + "\"" + toVertex.getFormula().toString() + "\"\n");
         }
     }
-    string out = vertices.append("\n" + edges);
+    string out = vertices.append(edges);
     return "digraph {\n" + vertices + "\n}";
 }

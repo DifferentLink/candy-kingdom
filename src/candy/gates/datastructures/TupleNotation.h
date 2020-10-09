@@ -30,7 +30,7 @@ public:
         vector<int> tuple;
         for (const Lit lit : *cl) {
             int sign = (lit.sign() ? -1 : 1);
-            tuple.push_back(sign * lit.x); // todo: is this correct?
+            tuple.push_back(sign * (lit.var() + 1)); // todo: is this correct?
         }
         return tuple;
     }
@@ -64,9 +64,9 @@ public:
             } else {
                 foundPositive = true;
             }
-            if (foundPositive && foundNegative) return false;
+            if (foundPositive && foundNegative) return true;
         }
-        return true;
+        return false;
     }
 
     static bool isMixedClause(const vector<int>& clause) {
@@ -294,13 +294,7 @@ public:
     }
 
     vector<int> clauseAt(unsigned int i) const {
-        if (i < negativeClauses.size()) {
-            return negativeClauses.at(i);
-        } else if (i < negativeClauses.size() + mixedClauses.size()) { // todo: is this correct?
-            return mixedClauses.at(i);
-        } else {
-            return positiveClauses.at(i);
-        }
+        return this->getFormula().at(i);
     }
 };
 

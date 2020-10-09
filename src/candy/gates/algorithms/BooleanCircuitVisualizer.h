@@ -5,12 +5,8 @@
 #include <candy/gates/datastructures/BooleanCircuit.h>
 
 class BooleanCircuitVisualizer {
-private:
-    BooleanCircuit circuit;
-
 public:
-    BooleanCircuitVisualizer(const BooleanCircuit &circuit);
-    string toDot();
+    static string toDot(const BooleanCircuit& circuit);
 };
 
 
