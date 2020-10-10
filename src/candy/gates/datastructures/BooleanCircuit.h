@@ -28,6 +28,8 @@ private:
     vector<vector<GateVertex>> outEdges { };
     vector<vector<GateVertex>> inEdges { };
 
+    TupleNotation remainder;
+
 public: // todo: move implementation to cc
     static vector<int> const emptyClause;
     static TupleNotation const emptyFormula;
@@ -35,7 +37,7 @@ public: // todo: move implementation to cc
 
     BooleanCircuit() = default;
 
-    BooleanCircuit(const string& formula) {
+    explicit BooleanCircuit(const string& formula) {
         CNFProblem problem;
         string filename = "tmp";
         ofstream oFile(filename);
@@ -45,7 +47,13 @@ public: // todo: move implementation to cc
         GateAnalyzer gateAnalyzer { problem };
         gateAnalyzer.analyze();
         GateProblem gateProblem = gateAnalyzer.getResult();
-        for (Gate& gate : gateProblem.gates) if (gate.isDefined()) addUniqueGate(gate);
+        for (const Gate& gate : gateProblem.gates) {
+            if (gate.isDefined()) {
+                addUniqueGate(gate);
+            }
+        }
+        remainder = TupleNotation(gateProblem.remainder);
+        cout << "öaldsf" << endl;
     }
 
     const vector<GateVertex> &getGates() const {
@@ -60,6 +68,10 @@ public: // todo: move implementation to cc
         return inEdges;
     }
 
+    const TupleNotation& getRemainder() const {
+        return remainder;
+    }
+
     static GateVertex getNullVertex() {
         return nullVertex;
     }
@@ -69,9 +81,9 @@ public: // todo: move implementation to cc
         return nullVertex;
     }
 
-    bool hasInput(const GateVertex& gate, const Lit lit) {
-        for (const auto& var : gate.getInVariables()) {
-            if (var == lit.var()) return true;
+    bool hasInput(const GateVertex& gate, const int literal) {
+        for (const auto& variable : gate.getInVariables()) {
+            if (variable == abs(literal)) return true;
         }
         return false;
     }
@@ -81,15 +93,15 @@ public: // todo: move implementation to cc
      * @param gate the gate to be added to the Boolean circuit
      * @return the ID of the gate added
      */
-    unsigned long addUniqueGate(const Gate gate) {
-        GateVertex vertex {++this->lastID, gate};
+    unsigned long addUniqueGate(const Gate& gate) {
+        GateVertex vertex { ++this->lastID, gate };
         gates.push_back(vertex);
+        outEdges.emplace_back();
+        inEdges.emplace_back();
         for (const auto& existingGate : gates) {
             if (hasInput(existingGate, vertex.getOutLiteral())) addUniqueEdge(vertex, existingGate);
             if (hasInput(vertex, existingGate.getOutLiteral())) addUniqueEdge(existingGate, vertex);
         }
-        outEdges.emplace_back();
-        inEdges.emplace_back();
         return vertex.getId();
     }
 
@@ -109,11 +121,11 @@ private:
     }
 
 public:
-    unsigned long getNumGates() const {
+    unsigned long numGates() const {
         return gates.size();
     }
 
-    unsigned long getNumEdges() const {
+    unsigned long numEdges() const {
         unsigned int numEdges = 0;
         for (const auto& vertex : outEdges) if (!vertex.empty()) numEdges++;
         return numEdges;

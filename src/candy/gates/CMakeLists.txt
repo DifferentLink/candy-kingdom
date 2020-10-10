@@ -25,4 +25,4 @@ add_library(gates OBJECT
     datastructures/Signature.h
     datastructures/StructuralFormula.h
     datastructures/PermutationList.h
-    datastructures/BooleanCircuit.cc)
+    datastructures/BooleanCircuit.cc datastructures/TupleGate.h)
