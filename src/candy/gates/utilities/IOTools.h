@@ -115,6 +115,18 @@ public:
         }
         return atMostSEQ(offset, constraintVars, k);
     }
+
+    /**
+     * Encodes an at most constraint using the sequential counter encoding by Sinz.
+     * @param formula the constraint will be added to used to calculate the offset
+     * @param constraintVars is the set of variables to be constrained
+     * @param k is the maximum number of variables that are allowed to be true at the same time
+     * @return the constraint as a string to be appended to the corresponding formula
+     */
+    static string atMostSEQ(const string& formula, const vector<Var> &constraintVars, const unsigned int k) {
+        unsigned int offset = FormulaTools::countVariables(formula);
+        return atMostSEQ(offset, constraintVars, k);
+    }
 };
 
 
