@@ -8,8 +8,7 @@
 
 class GraphBasedSequentialCounterRecognizer {
 public:
-    static StructuralFormula recognizeLTSEQI(TupleNotation& formula,
-                                             BooleanCircuit& circuit);
+    static StructuralFormula recognizeLTSEQI(const BooleanCircuit& circuit);
     static StructuralFormula recognizeLTSEQII(TupleNotation& formula,
                                               BooleanCircuit& circuit,
                                               StructuralFormula& structuralEncoding,

@@ -1,4 +1,3 @@
-#include <candy/gates/utilities/FormulaTools.h>
 #include "GraphBasedSequentialCounterRecognizer.h"
 #include "Unificator.h"
 
@@ -7,9 +6,9 @@ static const GateVertex& findFirstMatching(const vector<string>& pattern,
                                            map<string, unsigned int>& eta) {
     for (const GateVertex& gate : circuit.getGates()) {
         const auto& gateFormula = gate.getFormula();
-        if (gateFormula.getFormula().size() != 2) continue;
+        if (gateFormula.getFormula().empty()) continue;
         if (Unificator::unifyClauseL2(pattern, gateFormula.clauseAt(0), eta)) {
-
+            return gate;
         }
     }
     return BooleanCircuit::nullVertex;
@@ -22,7 +21,7 @@ static const GateVertex& findFirstMatching(const vector<string>& pattern,
  * @param eta
  * @return
  */
-const vector<int>& findFullyDefinedClause(const vector<string>& clause,
+const vector<int>& findFullyDefinedClause(const vector<string>& clause, // todo: test whether all variables are defined under eta?
                                           const TupleNotation& formula,
                                           map<string, unsigned int>& eta) {
     for (const auto& fclause : formula.getFormula()) {
@@ -31,19 +30,30 @@ const vector<int>& findFullyDefinedClause(const vector<string>& clause,
     return BooleanCircuit::emptyClause;
 }
 
+const vector<int>& findClause(const TupleNotation& formula,
+                              const vector<string>& pattern,
+                              map<string, unsigned int>& eta) {
+    for (const auto& clause : formula.getFormula()) {
+        if (Unificator::unifyClauseL2(pattern, clause, eta)) return clause;
+    }
+    return BooleanCircuit::emptyClause;
+}
+
 vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_I(const TupleNotation& formula,
                                                     map<string, unsigned int>& eta,
                                                     unsigned int n) {
     vector<vector<int>> nonGateClauses;
-    string nots_i_1;
-    string notx_ip;
-    for (unsigned int i = 2; i < n - 1; i++) {
-        nots_i_1 = "-s_" + to_string(i) + "_1";
-        notx_ip = "-x_" + to_string(i + 1);
-        if (!Unificator::isDefined(eta, notx_ip) || !Unificator::isDefined(eta, nots_i_1)) {
+    string s_ip_1;
+    string x_i;
+    vector<string> clause;
+    for (unsigned int i = 2; i < n; i++) {
+        s_ip_1 = "s_" + to_string(i - 1) + "_1";
+        x_i = "x_" + to_string(i);
+        if (!Unificator::isDefined(eta, s_ip_1)) {
             return BooleanCircuit::emptyFormula.getFormula();
         }
-        nonGateClauses.push_back(findFullyDefinedClause({ notx_ip,  }, formula, eta));
+        clause = { "-" + x_i, "-" + s_ip_1 };
+        nonGateClauses.push_back(findClause(formula, clause, eta));
     }
     return nonGateClauses;
 }
@@ -54,15 +64,15 @@ vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_II(const TupleNotation& formul
     return {{ }};
 }
 
-StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(TupleNotation& formula,
-                                                                         BooleanCircuit& circuit) {
+StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(const BooleanCircuit& circuit) {
     map<string, unsigned int> eta;
     vector<GateVertex> gamma;
     unsigned int i = 1;
     string s_im_1;
     string s_i_1 = "s_1_1";
-    string x_i = "x_i";
-    GateVertex baseVertex = findFirstMatching({ "-x_1", "s_1_1" }, circuit, eta);
+    string x_i = "x_1";
+    vector<string> basePattern = { "-" + x_i, s_i_1 };
+    GateVertex baseVertex = findFirstMatching(basePattern, circuit, eta);
     if (GateVertex::isNull(baseVertex)) return StructuralFormula::getEmptyStructuralFormula();
     gamma.push_back(baseVertex);
 
@@ -96,7 +106,7 @@ StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(TupleNo
         }
 
     } while (!GateVertex::isNull(stepVertex));
-    TupleNotation encoding(findNonGateClausesOfLTSEQ_n_k_I(formula, eta, i + 1)); // todo: is this the correct i?
+    TupleNotation encoding(findNonGateClausesOfLTSEQ_n_k_I(circuit.getRemainder(), eta, i + 1)); // todo: is this the correct i?
     if (encoding.isEmpty()) gamma = { };
     return StructuralFormula{ encoding, gamma };
 }
