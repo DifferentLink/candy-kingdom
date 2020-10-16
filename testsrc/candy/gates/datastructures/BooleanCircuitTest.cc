@@ -13,7 +13,7 @@ TEST(BooleanCircuitTest, basicOperationsTest_01) {
 }
 
 TEST(BooleanCircuitTest, fromFormulaTest_01) {
-    string formula = IOTools::atMostSEQ("", { 1, 2, 3}, 1);
+    string formula = IOTools::atMostSEQ("1 0", { 2, 3 }, 1);
     BooleanCircuit circuit(formula);
     ASSERT_TRUE(circuit.numGates() == 2);
     ASSERT_TRUE(circuit.numEdges() == 1);

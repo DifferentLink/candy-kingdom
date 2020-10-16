@@ -30,6 +30,23 @@ private:
 
     TupleNotation remainder;
 
+    static bool containsClause(const vector<GateVertex>& gates, const vector<int> &clause) {
+        for (const auto& gate : gates) {
+            for (const auto& gateClause : gate.getFormula().getFormula()) {
+                if (gateClause == clause) return true;
+            }
+        }
+            return false;
+    }
+
+    static TupleNotation initRemainer(const BooleanCircuit& circuit, const TupleNotation& formula) {
+        vector<vector<int>> remainder;
+        for (const auto& clause : formula.getFormula()) {
+            if (!BooleanCircuit::containsClause(circuit.gates, clause)) remainder.push_back(clause);
+        }
+        return TupleNotation(remainder);
+    }
+
 public: // todo: move implementation to cc
     static vector<int> const emptyClause;
     static TupleNotation const emptyFormula;
@@ -52,8 +69,21 @@ public: // todo: move implementation to cc
                 addUniqueGate(gate);
             }
         }
-        remainder = TupleNotation(gateProblem.remainder);
-        cout << "öaldsf" << endl;
+        For problemFor (problem.begin(), problem.end());
+        remainder = initRemainer(*this, TupleNotation(problemFor));
+    }
+
+    explicit BooleanCircuit(CNFProblem& problem) {
+        GateAnalyzer gateAnalyzer { problem };
+        gateAnalyzer.analyze();
+        GateProblem gateProblem = gateAnalyzer.getResult();
+        for (const Gate& gate : gateProblem.gates) {
+            if (gate.isDefined()) {
+                addUniqueGate(gate);
+            }
+        }
+        For problemFor (problem.begin(), problem.end());
+        remainder = initRemainer(*this, TupleNotation(problemFor));
     }
 
     const vector<GateVertex> &getGates() const {
@@ -68,7 +98,7 @@ public: // todo: move implementation to cc
         return inEdges;
     }
 
-    const TupleNotation& getRemainder() const {
+    TupleNotation& getRemainder() {
         return remainder;
     }
 
@@ -81,9 +111,17 @@ public: // todo: move implementation to cc
         return nullVertex;
     }
 
+    bool hasInput(const GateVertex& gate, const unsigned int variable) {
+        for (const unsigned int inVariable : gate.getInVariables()) {
+            if (inVariable == variable) return true;
+        }
+        return false;
+    }
+
+
     bool hasInput(const GateVertex& gate, const int literal) {
-        for (const auto& variable : gate.getInVariables()) {
-            if (variable == abs(literal)) return true;
+        for (const unsigned int variable : gate.getInVariables()) {
+            if (variable == (unsigned int) abs(literal)) return true;
         }
         return false;
     }

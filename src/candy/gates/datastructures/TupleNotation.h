@@ -12,6 +12,7 @@ private:
     vector<vector<int>> negativeClauses;
     vector<vector<int>> mixedClauses;
     vector<vector<int>> positiveClauses;
+    vector<bool> marks;
 
 public:
     const vector<vector<int>> &getNegativeClauses() const {
@@ -33,6 +34,18 @@ public:
             tuple.push_back(sign * (lit.var() + 1)); // todo: is this correct?
         }
         return tuple;
+    }
+
+    bool isMarked(const unsigned int clausePos) const {
+        return marks[clausePos];
+    }
+
+    void mark(const unsigned int clausePos) {
+        marks[clausePos] = true;
+    }
+
+    void unmark(const unsigned int clausePos) {
+        marks[clausePos] = false;
     }
 
     static bool isNegativeClause(const Cl* cl) {
@@ -198,16 +211,23 @@ public:
         sortByClauseLength(positiveClauses);
     }
 
+    void unmarkAll() {
+        for (unsigned long i = 0; i < this->size(); i++) marks[i] = false;
+    }
+
     TupleNotation() {
-        this->negativeClauses = {};
-        this->mixedClauses = {};
-        this->positiveClauses = {};
+        this->negativeClauses = { };
+        this->mixedClauses    = { };
+        this->positiveClauses = { };
+        this->marks           = { };
     }
 
     explicit TupleNotation(const For& formula) {
         this->negativeClauses = extractAllNegativeClauses(formula);
         this->mixedClauses = extractAllMixedClauses(formula);
         this->positiveClauses = extractAllPositiveClauses(formula);
+        marks = vector<bool>(this->size());
+        for (unsigned long i = 0; i < this->size(); i++) marks[i] = false;
         establishOrdering();
     }
 
@@ -215,6 +235,8 @@ public:
         this->negativeClauses = extractAllNegativeClauses(formulaAsTuple);
         this->mixedClauses = extractAllMixedClauses(formulaAsTuple);
         this->positiveClauses = extractAllPositiveClauses(formulaAsTuple);
+        marks = vector<bool>(this->size());
+        for (unsigned long i = 0; i < this->size(); i++) marks[i] = false;
         establishOrdering();
     }
 
@@ -223,6 +245,8 @@ public:
         this->negativeClauses = extractAllNegativeClauses(formula);
         this->mixedClauses = extractAllMixedClauses(formula);
         this->positiveClauses = extractAllPositiveClauses(formula);
+        marks = vector<bool>(this->size());
+        for (unsigned long i = 0; i < this->size(); i++) marks[i] = false;
         establishOrdering();
     }
 

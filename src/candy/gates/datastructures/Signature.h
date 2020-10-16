@@ -38,13 +38,13 @@ public:
     explicit Signature(const vector<int>& clause) {
         TupleNotation formula(clause);
         for (const auto& fclause : formula.getNegativeClauses()) {
-            negative.push_back(clause.size());
+            negative.push_back(fclause.size());
         }
         for (const auto& fclause : formula.getMixedClauses()) {
-            mixed.push_back(Tuple({ clause.size(), TupleNotation::numNegativeLiterals(clause) }));
+            mixed.push_back(Tuple({ fclause.size(), TupleNotation::numNegativeLiterals(fclause) }));
         }
         for (const auto& fclause : formula.getPositiveClauses()) {
-            positive.push_back(clause.size());
+            positive.push_back(fclause.size());
         }
     }
 

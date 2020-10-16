@@ -42,7 +42,7 @@ public:
      */
     static string getsij(const unsigned int i, const unsigned int j, const unsigned int k, const bool sign = false,
                   const unsigned int offset = 0) {
-        return (sign ? "-" : "") +  to_string(offset + (i - 1)*k + j);
+        return (sign ? "-" : "") +  to_string(offset + 1 + (i - 1)*k + j);
     }
 
     static string getxi(const vector<Var> &constraintVars, unsigned int i, const bool sign = false) {
@@ -109,7 +109,7 @@ public:
      * @return the constraint as a string to be appended to the corresponding formula
      */
     static string atMostSEQ(const vector<Var> &allVars, const vector<Var> &constraintVars, const unsigned int k) {
-        unsigned int offset = 0;
+        int offset = 0;
         for (auto variable : allVars) {
             if (variable > offset) offset = variable;
         }
@@ -125,6 +125,7 @@ public:
      */
     static string atMostSEQ(const string& formula, const vector<Var> &constraintVars, const unsigned int k) {
         unsigned int offset = FormulaTools::countVariables(formula);
+        offset = (offset == 0 ? 1 : offset);
         return atMostSEQ(offset, constraintVars, k);
     }
 };

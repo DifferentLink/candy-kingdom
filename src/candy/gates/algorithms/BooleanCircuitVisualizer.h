@@ -3,10 +3,20 @@
 
 
 #include <candy/gates/datastructures/BooleanCircuit.h>
+#include "GateClassifier.h"
 
 class BooleanCircuitVisualizer {
+private:
+    BooleanCircuit circuit;
+    GateClassifier classifier;
+
 public:
-    static string toDot(const BooleanCircuit& circuit);
+    explicit BooleanCircuitVisualizer(const BooleanCircuit &circuit);
+    string toDot(bool renderInputVariables = true);
+    string classificationToString(const GateVertex& gateVertex);
+    vector<GateClassifier::characteristicFunction> getClassification() {
+        return classifier.getResult();
+    }
 };
 
 
