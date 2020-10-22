@@ -6,7 +6,13 @@ add_executable(gates_tests
     $<TARGET_OBJECTS:testutils>
     algorithms/UnificatorTest.cc
     datastructures/SignatureTest.cc
-    datastructures/TupleNotationTest.cc algorithms/GraphBasedSequentialCounterRecognizerTest.cc datastructures/BooleanCircuitTest.cc algorithms/BooleanCircuitVisualizerTest.cc algorithms/ConstraintEncoderTest.cc)
+    datastructures/TupleNotationTest.cc
+    algorithms/GraphBasedSequentialCounterRecognizerTest.cc
+    datastructures/BooleanCircuitTest.cc
+    algorithms/BooleanCircuitVisualizerTest.cc
+    algorithms/ConstraintEncoderTest.cc
+    algorithms/ClassificationBasedRecognizerTest.cc
+    algorithms/EvaluationTest.cc)
 candy_executable_customizations(gates_tests)
 
 target_include_directories(gates_tests PUBLIC ${PROJECT_SOURCE_DIR}/lib/googletest/googletest/include
@@ -22,6 +28,7 @@ add_test(NAME gates_module_tests COMMAND gates_tests WORKING_DIRECTORY ${CMAKE_C
 
 # Make sure that the test CNF problems are copied to the build directory
 file(GLOB TEST_CNF_PROBLEMS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "problems/*.cnf")
+file(GLOB TEST_CNF_PROBLEMS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "problems/likewynn/*.cnf")
 message("Test CNF files: ${TEST_CNF_PROBLEMS}")
 
 foreach(CNF_PROBLEM ${TEST_CNF_PROBLEMS})

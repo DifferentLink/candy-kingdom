@@ -72,9 +72,9 @@ public:
 
     static inline pair<unsigned int, unsigned int> valueIsDefined(const map<unsigned int, unsigned int> eta, const int literal) {
         for (const auto& x : eta) {
-            if (x.second == literal) return x;
+            if (x.second == var(literal)) return x;
         }
-        return {0, 0};
+        return { 0, 0 };
     }
 
     static unsigned int numNegativeLiterals(const vector<string>& clause) {
@@ -121,12 +121,12 @@ public:
                 return true;
             } else if (isDefined(eta, x_1) && !isDefined(eta, x_2)) {
                 auto mx_1 = eta.find(var(x_1));
-                if (mx_1->second == y_1) {
+                if (mx_1->second == var(y_1)) {
                     if (getPolarity(x_2) == getPolarity(y_2)) {
                         eta.insert({ var(x_2), var(y_2) });
                         return true;
                     } else return false;
-                } else if (mx_1->second == y_2) {
+                } else if (mx_1->second == var(y_2)) {
                     if (getPolarity(x_2) == getPolarity(y_1)) {
                         eta.insert({ var(x_2), var(y_1) });
                         return true;
@@ -134,19 +134,19 @@ public:
                 } else return false;
             } else if (!isDefined(eta, x_1) && isDefined(eta, x_2)) {
                 auto mx_2 = eta.find(var(x_2));
-                if (mx_2->second == y_1) {
+                if (mx_2->second == var(y_1)) {
                     if (getPolarity(x_1) == getPolarity(y_1)) {
                         eta.insert({ var(x_1), var(y_1) });
                         return true;
                     } else return false;
-                } else if (mx_2->second == y_2) {
+                } else if (mx_2->second == var(y_2)) {
                     if (getPolarity(x_1) == getPolarity(y_2)) {
                         eta.insert({ var(x_1), var(y_2) });
                     } else return false;
                 } else return false;
             } else {
-                int mx_1 = eta.find(var(x_1))->second;
-                int mx_2 = eta.find(var(x_2))->second;
+                unsigned int mx_1 = eta.find(var(x_1))->second;
+                unsigned int mx_2 = eta.find(var(x_2))->second;
                 return ((mx_1 == var(y_1) && mx_2 == var(y_2)) || (mx_1 == var(y_2) && mx_2 == var(y_1)));
             }
         }
@@ -186,17 +186,55 @@ public:
 
         if (numNegativeLiterals(clause1) == TupleNotation::numNegativeLiterals(clause2)) {
             if (!isDefined(eta, var(x_1)) && !isDefined(eta, var(x_2))) {
+                return true;
+            } else if (isDefined(eta, x_1) && !isDefined(eta, x_2)) {
+                auto mx_1 = eta.find(var(x_1));
+                if (mx_1->second == var(y_1)) {
+                    return getPolarity(x_2) == getPolarity(y_2);
+                } else if (mx_1->second == var(y_2)) {
+                    return getPolarity(x_2) == getPolarity(y_1);
+                } else {
+                    return false;
+                }
+            } else if (!isDefined(eta, x_1) && isDefined(eta, x_2)) {
+                auto mx_2 = eta.find(var(x_2));
+                if (mx_2->second == var(y_1)) {
+                    return getPolarity(x_1) == getPolarity(y_2);
+                } else if (mx_2->second == var(y_2)) {
+                    return getPolarity(x_1) == getPolarity(y_1);
+                } else return false;
+            } else {
+                unsigned int mx_1 = eta.find(var(x_1))->second;
+                unsigned int mx_2 = eta.find(var(x_2))->second;
+                return ((mx_1 == var(y_1) && mx_2 == var(y_2)) || (mx_1 == var(y_2) && mx_2 == var(y_1)));
+            }
+        }
+        return false; // todo: this line should be unreachable?
+    }
+
+    static bool unifyClauseL2U(const vector<string>& clause1, // todo: this version updates eta with the first match
+                              const vector<int>& clause2,
+                              map<string, unsigned int>& eta) {
+        if (clause1.size() != 2 || clause2.size() != 2) return false;
+
+        const string x_1 = clause1.at(0);
+        const string x_2 = clause1.at(1);
+        const int y_1 = clause2.at(0);
+        const int y_2 = clause2.at(1);
+
+        if (numNegativeLiterals(clause1) == TupleNotation::numNegativeLiterals(clause2)) {
+            if (!isDefined(eta, var(x_1)) && !isDefined(eta, var(x_2))) {
                 eta.insert({ var(x_1), var(y_1) });
                 eta.insert({ var(x_2), var(y_2) });
                 return true;
             } else if (isDefined(eta, x_1) && !isDefined(eta, x_2)) {
                 auto mx_1 = eta.find(var(x_1));
-                if (mx_1->second == y_1) {
+                if (mx_1->second == var(y_1)) {
                     if (getPolarity(x_2) == getPolarity(y_2)) {
                         eta.insert({ var(x_2), var(y_2) });
                         return true;
                     } else return false;
-                } else if (mx_1->second == y_2) {
+                } else if (mx_1->second == var(y_2)) {
                     if (getPolarity(x_2) == getPolarity(y_1)) {
                         eta.insert({ var(x_2), var(y_1) });
                         return true;
@@ -204,19 +242,19 @@ public:
                 } else return false;
             } else if (!isDefined(eta, x_1) && isDefined(eta, x_2)) {
                 auto mx_2 = eta.find(var(x_2));
-                if (mx_2->second == y_1) {
+                if (mx_2->second == var(y_1)) {
                     if (getPolarity(x_1) == getPolarity(y_1)) {
                         eta.insert({ var(x_1), var(y_1) });
                         return true;
                     } else return false;
-                } else if (mx_2->second == y_2) {
+                } else if (mx_2->second == var(y_2)) {
                     if (getPolarity(x_1) == getPolarity(y_2)) {
                         eta.insert({ var(x_1), var(y_2) });
                     } else return false;
                 } else return false;
             } else {
-                int mx_1 = eta.find(var(x_1))->second;
-                int mx_2 = eta.find(var(x_2))->second;
+                unsigned int mx_1 = eta.find(var(x_1))->second;
+                unsigned int mx_2 = eta.find(var(x_2))->second;
                 return ((mx_1 == var(y_1) && mx_2 == var(y_2)) || (mx_1 == var(y_2) && mx_2 == var(y_1)));
             }
         }
@@ -242,54 +280,54 @@ public:
             eta.insert({ var(x_3), var(y_3) });
             return true;
         } else if (isDefined(eta, x_1) && !isDefined(eta, x_2) && !isDefined(eta, x_3)) {
-            int mx_1 = eta.find(x_1)->second;
-            if (mx_1 == y_1) {
+            unsigned int mx_1 = eta.find(x_1)->second;
+            if (mx_1 == var(y_1)) {
                 eta.insert({ var(x_2), var(y_2) });
                 eta.insert({ var(x_3), var(y_3) });
                 return true;
-            } else if (mx_1 == y_2) {
+            } else if (mx_1 == var(y_2)) {
                 eta.insert({ var(x_2), var(y_1) });
                 eta.insert({ var(x_3), var(y_3) });
                 return true;
-            } else if (mx_1 == y_3) {
+            } else if (mx_1 == var(y_3)) {
                 eta.insert({ var(x_2), var(y_1) });
                 eta.insert({ var(x_3), var(y_2) });
                 return true;
             } else return false;
         } else if (!isDefined(eta, x_1) && isDefined(eta, x_2) && !isDefined(eta, x_3)) {
-            int mx_2 = eta.find(x_2)->second;
-            if (mx_2 == y_1) {
+            unsigned int mx_2 = eta.find(x_2)->second;
+            if (mx_2 == var(y_1)) {
                 eta.insert({ var(x_1), var(y_2) });
                 eta.insert({ var(x_3), var(y_3) });
                 return true;
-            } else if (mx_2 == y_2) {
+            } else if (mx_2 == var(y_2)) {
                 eta.insert({ var(x_1), var(y_1) });
                 eta.insert({ var(x_3), var(y_3) });
                 return true;
-            } else if (mx_2 == y_3) {
+            } else if (mx_2 == var(y_3)) {
                 eta.insert({ var(x_1), var(y_1) });
                 eta.insert({ var(x_3), var(y_2) });
                 return true;
             } else return false;
         } else if (!isDefined(eta, x_1) && !isDefined(eta, x_2) && isDefined(eta, x_3)) {
-            int mx_3 = eta.find(x_3)->second;
-            if (mx_3 == y_1) {
+            unsigned int mx_3 = eta.find(x_3)->second;
+            if (mx_3 == var(y_1)) {
                 eta.insert({ var(x_1), var(y_2) });
                 eta.insert({ var(x_2), var(y_3) });
                 return true;
-            } else if (mx_3 == y_2) {
+            } else if (mx_3 == var(y_2)) {
                 eta.insert({ var(x_1), var(y_1) });
                 eta.insert({ var(x_2), var(y_3) });
                 return true;
-            } else if (mx_3 == y_3) {
+            } else if (mx_3 == var(y_3)) {
                 eta.insert({ var(x_1), var(y_1) });
                 eta.insert({ var(x_2), var(y_2) });
                 return true;
             } else return false;
         } else if (isDefined(eta, x_1) && isDefined(eta, x_2) && !isDefined(eta, x_3)) {
-            int mx_1 = eta.find(var(x_1))->second;
-            int mx_2 = eta.find(var(x_2))->second;
-            if ((mx_1== var(y_1)&& mx_2== var(y_2) && getPolarity(x_3) == getPolarity(y_3))
+            unsigned int mx_1 = eta.find(var(x_1))->second;
+            unsigned int mx_2 = eta.find(var(x_2))->second;
+            if ((mx_1== var(y_1) && mx_2== var(y_2) && getPolarity(x_3) == getPolarity(y_3))
                 || (mx_1== var(y_2) && mx_2== var(y_1)&& getPolarity(x_3) == getPolarity(y_3))) {
                 eta.insert({ var(x_3), var(y_3) });
                 return true;
@@ -303,8 +341,8 @@ public:
                 return true;
             } else return false;
         } else if (isDefined(eta, x_1) && !isDefined(eta, x_2) && isDefined(eta, x_3)) { // todo: check this case
-            int mx_1 = eta.find(var(x_1))->second;
-            int mx_3 = eta.find(var(x_3))->second;
+            unsigned int mx_1 = eta.find(var(x_1))->second;
+            unsigned int mx_3 = eta.find(var(x_3))->second;
             if ((mx_1== var(y_1)&& mx_3== var(y_2) && getPolarity(x_3) == getPolarity(y_3))
                 || (mx_1== var(y_2) && mx_3== var(y_1)&& getPolarity(x_3) == getPolarity(y_3))) {
                 eta.insert({ var(x_3), var(y_3) });
@@ -319,8 +357,8 @@ public:
                 return true;
             } else return false;
         } else if (!isDefined(eta, x_1) && isDefined(eta, x_2) && isDefined(eta, x_3)) {// todo: check this case
-            int mx_2 = eta.find(var(x_2))->second;
-            int mx_3 = eta.find(var(x_3))->second;
+            unsigned int mx_2 = eta.find(var(x_2))->second;
+            unsigned int mx_3 = eta.find(var(x_3))->second;
             if ((mx_2== var(y_1)&& mx_3== var(y_2) && getPolarity(x_3) == getPolarity(y_3))
                 || (mx_2== var(y_2) && mx_3== var(y_1)&& getPolarity(x_3) == getPolarity(y_3))) {
                 eta.insert({ var(x_3), var(y_3) });
@@ -335,9 +373,9 @@ public:
                 return true;
             } else return false;
         } else {
-            int mx_1 = eta.find(var(x_1))->second;
-            int mx_2 = eta.find(var(x_2))->second;
-            int mx_3 = eta.find(var(x_3))->second;
+            unsigned int mx_1 = eta.find(var(x_1))->second;
+            unsigned int mx_2 = eta.find(var(x_2))->second;
+            unsigned int mx_3 = eta.find(var(x_3))->second;
             return (mx_1 == var(y_1) && mx_2 == var(y_2) && mx_3 == var(y_3))
                    || (mx_1 == var(y_1) && mx_2 == var(y_3) && mx_3 == var(y_2))
                    || (mx_1 == var(y_2) && mx_2 == var(y_1) && mx_3 == var(y_3))
@@ -346,8 +384,7 @@ public:
                    || (mx_1 == var(y_3) && mx_2 == var(y_2) && mx_3 == var(y_1));
         }
     }
-
-    };
+};
 
 
 #endif //CANDY_UNIFICATOR_H

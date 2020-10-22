@@ -26,6 +26,10 @@ public:
         return id;
     }
 
+    void setId(const unsigned long id) {
+        this->id = id;
+    }
+
     const TupleGate &getGate() const {
         return gate;
     }

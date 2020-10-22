@@ -4,7 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <candy/gates/GateAnalyzer.h>
-#include <candy/gates/utilities/IOTools.h>
+#include <candy/gates/utilities/SequentialCounterEncoder.h>
 #include "GateVertex.h"
 #include "TupleNotation.h"
 
@@ -54,11 +54,14 @@ public: // todo: move implementation to cc
 
     BooleanCircuit() = default;
 
-    explicit BooleanCircuit(const string& formula) {
+    explicit BooleanCircuit(const string& formula, const bool hasHeader = false) {
         CNFProblem problem;
         string filename = "tmp";
         ofstream oFile(filename);
-        oFile << IOTools::generateDIMACSHeader(formula) << endl << formula << endl;
+        string out;
+        if (!hasHeader) out = SequentialCounterEncoder::generateDIMACSHeader(formula);
+        out = out + formula;
+        oFile << out << endl;
         oFile.close();
         problem.readDimacsFromFile(filename.c_str());
         GateAnalyzer gateAnalyzer { problem };
@@ -71,6 +74,13 @@ public: // todo: move implementation to cc
         }
         For problemFor (problem.begin(), problem.end());
         remainder = initRemainer(*this, TupleNotation(problemFor));
+    }
+
+    explicit BooleanCircuit(vector<GateVertex>& gates, const TupleNotation& remainder) {
+        for (GateVertex& gate : gates) {
+            addUniqueGate(gate);
+        }
+        this->remainder = remainder;
     }
 
     explicit BooleanCircuit(CNFProblem& problem) {
@@ -143,6 +153,18 @@ public: // todo: move implementation to cc
         return vertex.getId();
     }
 
+    unsigned long addUniqueGate(GateVertex& gate) {
+        gate.setId(++this->lastID);
+        gates.push_back(gate);
+        outEdges.emplace_back();
+        inEdges.emplace_back();
+        for (const auto& existingGate : gates) {
+            if (hasInput(existingGate, gate.getOutLiteral())) addUniqueEdge(gate, existingGate);
+            if (hasInput(gate, existingGate.getOutLiteral())) addUniqueEdge(existingGate, gate);
+        }
+        return gate.getId();
+    }
+
     GateVertex& getGateVertex(const unsigned long id) {
         return gates.at(id - 1);
     }
@@ -197,6 +219,15 @@ public:
     }
 
     /**
+     * Get the ingoing edges from the gate with the given ID.
+     * @param id the ID of the gate
+     * @return the ingoing edges of the gate
+     */
+    const vector<GateVertex>& getInEdges(const GateVertex& gate) const {
+        return inEdges.at(gate.getId() - 1);
+    }
+
+    /**
      * Get the number of edges going out of the gate with the given ID.
      * @param id the ID of the gate
      * @return the number of outgoing edges from the gate
@@ -214,29 +245,64 @@ public:
         return inEdges.at(id - 1).size();
     }
 
-    const GateVertex& hop(const unsigned long id, const TupleNotation formula) { // todo add unification
-        bool unifies = true;
-        for (GateVertex& hopVertex : getOutEdges(id)) {
-            for (const GateVertex& targetVertex : getInEdges(hopVertex.getId())) {
-                if (unifies) return targetVertex;
-            }
-        }
-        return nullVertex;
+    static bool in(const GateVertex& x, const vector<GateVertex>& xs) {
+        for (const auto& y : xs) if (x.getId() == y.getId()) return true;
+        return false;
     }
 
-    //const vector<GateVertex*> hopTwo(const unsigned long id, const TupleNotation formula) { // todo implement this function properly
-    //    bool unifies = true;
-    //    // vector<GateVertex*> leftRight { &GateVertex::getNullVertex(), &GateVertex::getNullVertex() }; // todo: maybe make null objects static
-    //    return leftRight;
-    //}
+    static inline void removeAll(const GateVertex& gate, vector<GateVertex>& gates) {
+        gates.erase(remove(gates.begin(), gates.end(), gate), gates.end());
+    }
 
-    /*const GateVertex& traverse(const unsigned long id) {
-        if (outDegree(id) == 1) {
-            return getOutEdges(id).at(0);
-        } else {
-            return unsuccessfull;
+    BooleanCircuit deleteGates(vector<GateVertex>& gatesToRemove) {
+        vector<GateVertex> remainingGates;
+        remainingGates.reserve(gates.size() - gatesToRemove.size());
+        for (auto gate : this->gates) {
+            if (!in(gate, gatesToRemove)) {
+                remainingGates.push_back(gate);
+            }
         }
-    }*/
+
+        return BooleanCircuit(remainingGates, this->remainder);
+    }
+
+    void depr_deleteGates(const vector<GateVertex>& gates) {
+        vector<GateVertex> ids;
+        ids.reserve(gates.size());
+        for (const auto& gate : gates) ids.push_back(gate);
+        vector<GateVertex> newGates;
+        vector<vector<GateVertex>> newOutEdges;
+        vector<vector<GateVertex>> newInEdges;
+        unsigned int long i = 0;
+        for (auto& gate : this->gates) {
+            if (!in(gate, gates)) {
+                newOutEdges.push_back(this->outEdges.at(gate.getId() - 1));
+                newInEdges.push_back(this->inEdges.at(gate.getId() - 1));
+                gate.setId(i + 1);
+                newGates.push_back(gate);
+                i++;
+            }
+        }
+        for (vector<GateVertex>& edges : newOutEdges) {
+            for (const auto& gate : ids) removeAll(gate, edges);
+        }
+        for (vector<GateVertex>& edges : newInEdges) {
+            for (const auto& gate : ids) removeAll(gate, edges);
+        }
+        this->gates = newGates;
+        this->outEdges = newOutEdges;
+        this->inEdges = newInEdges;
+        this->lastID = i;
+    }
+
+    string toDIMACS() {
+        string dimacsCircuit;
+        for (const auto& gate : this->gates) {
+            dimacsCircuit.append(gate.getFormula().toDIMACS());
+        }
+        dimacsCircuit.append(this->remainder.toDIMACS());
+        return dimacsCircuit;
+    }
 };
 
 

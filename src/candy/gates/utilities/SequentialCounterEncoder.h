@@ -1,5 +1,5 @@
-#ifndef CANDY_IOTOOLS_H
-#define CANDY_IOTOOLS_H
+#ifndef CANDY_SEQUENTIALCOUNTERENCODER_H
+#define CANDY_SEQUENTIALCOUNTERENCODER_H
 
 #include "candy/gates/GateProblem.h"
 #include "FormulaTools.h"
@@ -9,7 +9,7 @@
 using namespace Candy;
 using namespace std;
 
-class IOTools {
+class SequentialCounterEncoder {
 public:
     static void writeStringToFile(const string &content, const string &filename) {
         ofstream oFile(filename);
@@ -18,7 +18,7 @@ public:
     }
 
     static void writeToDIMACS(const string& formula, const string& filename) {
-        writeStringToFile(IOTools::generateDIMACSHeader(formula) + "\n" + formula, filename);
+        writeStringToFile(SequentialCounterEncoder::generateDIMACSHeader(formula) + "\n" + formula, filename);
     }
 
     static void writeToDIMACS(const TupleNotation &formula, const string &filename) {
@@ -42,7 +42,7 @@ public:
      */
     static string getsij(const unsigned int i, const unsigned int j, const unsigned int k, const bool sign = false,
                   const unsigned int offset = 0) {
-        return (sign ? "-" : "") +  to_string(offset + 1 + (i - 1)*k + j);
+        return (sign ? "-" : "") +  to_string(offset + (i - 1)*k + j);
     }
 
     static string getxi(const vector<Var> &constraintVars, unsigned int i, const bool sign = false) {
@@ -58,7 +58,7 @@ public:
      */
     static string atMostSEQ(const unsigned int offset, const vector<Var> &constraintVars, const unsigned int k) {
         unsigned int n = constraintVars.size();
-        assert(n > 1 && k > 0);
+        assert(n > 1 && k > 0 && n > k);
         string cnfLTSEQ;
         cnfLTSEQ.append(getxi(constraintVars, 1, true)                  + " "
                         + getsij(1, 1, k, false, offset)                + " 0\n");   // -x_1      s_1,1
@@ -131,4 +131,4 @@ public:
 };
 
 
-#endif //CANDY_IOTOOLS_H
+#endif //CANDY_SEQUENTIALCOUNTERENCODER_H

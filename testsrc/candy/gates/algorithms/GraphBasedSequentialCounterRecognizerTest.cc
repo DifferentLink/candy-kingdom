@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include "candy/gates/utilities/FormulaTools.h"
-#include "candy/gates/utilities/IOTools.h"
+#include "candy/gates/utilities/SequentialCounterEncoder.h"
 #include "candy/gates/algorithms/GraphBasedSequentialCounterRecognizer.h"
 
 TEST(GraphBasedSequentialCounterRecognizerTest, kOneRecognition_numGatesTest_01) {
-    BooleanCircuit seqCounterCircuit(IOTools::atMostSEQ(2, { 1, 2 }, 1));
+    BooleanCircuit seqCounterCircuit(SequentialCounterEncoder::atMostSEQ(2, {1, 2 }, 1));
     TupleNotation remainingClauses;
     StructuralFormula structuralFormula =
             GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(seqCounterCircuit);
@@ -13,7 +13,7 @@ TEST(GraphBasedSequentialCounterRecognizerTest, kOneRecognition_numGatesTest_01)
 }
 
 TEST(GraphBasedSequentialCounterRecognizerTest, kOneRecognition_numGatesTest_02) {
-    BooleanCircuit seqCounterCircuit(IOTools::atMostSEQ(3, { 1, 2, 3 }, 1));
+    BooleanCircuit seqCounterCircuit(SequentialCounterEncoder::atMostSEQ(3, {1, 2, 3 }, 1));
     TupleNotation remainingClauses;
     StructuralFormula structuralFormula =
             GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(seqCounterCircuit);

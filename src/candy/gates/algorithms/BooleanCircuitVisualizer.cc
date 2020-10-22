@@ -26,13 +26,19 @@ string BooleanCircuitVisualizer::classificationToString(const GateVertex& gateVe
     string classificationString;
     switch (getClassification().at(gateVertex.getId() - 1)) {
         case GateClassifier::cEQUIV:
-            classificationString = "EQUIV(" + variableList + ") = " + outLiteral;
+            classificationString = "EQUIV(" + variableList + ") = " + outLiteral; break;
         case GateClassifier::cOR:
-            classificationString = "OR(" + variableList + ") = " + outLiteral;
+            classificationString = "OR(" + variableList + ") = " + outLiteral; break;
+        case GateClassifier::cHALFOR:
+            classificationString = "HOR(" + variableList + ") = " + outLiteral; break;
         case GateClassifier::cAND:
-            classificationString = "AND(" + variableList + ") = " + outLiteral;
+            classificationString = "AND(" + variableList + ") = " + outLiteral; break;
+        case GateClassifier::cHALFAND:
+            classificationString = "HAND(" + variableList + ") = " + outLiteral; break;
         case GateClassifier::cXOR:
-            classificationString = "XOR(" + variableList + ") = " + outLiteral;
+            classificationString = "XOR(" + variableList + ") = " + outLiteral; break;
+        case GateClassifier::cCONSTRAINTGATE:
+            classificationString = "CONSTR(" + variableList + ") = " + outLiteral; break;
         case GateClassifier::cUNDEF:
             return clausesAsString(gateVertex);
     }

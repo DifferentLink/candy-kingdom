@@ -250,6 +250,10 @@ public:
         establishOrdering();
     }
 
+    explicit TupleNotation(const string& formula) {
+
+    }
+
     vector<vector<int>> getFormula() const {
         vector<vector<int>> formula;
         formula.reserve(negativeClauses.size() + mixedClauses.size() + positiveClauses.size());

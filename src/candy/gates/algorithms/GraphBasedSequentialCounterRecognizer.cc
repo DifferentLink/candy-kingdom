@@ -30,16 +30,21 @@ const vector<int>& findFullyDefinedClause(const vector<string>& clause, // todo:
     return BooleanCircuit::emptyClause;
 }
 
-const vector<int>& findClause(const TupleNotation& formula,
+vector<int> findClause(TupleNotation& formula,
                               const vector<string>& pattern,
                               map<string, unsigned int>& eta) {
     for (const auto& clause : formula.getFormula()) {
-        if (Unificator::unifyClauseL2(pattern, clause, eta)) return clause;
+        for (unsigned long i = 0; i < formula.size(); i++) {
+            if (!formula.isMarked(i) && Unificator::unifyClauseL2(pattern, clause, eta)) {
+                formula.mark(i);
+                return clause;
+            }
+        }
     }
     return BooleanCircuit::emptyClause;
 }
 
-vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_I(const TupleNotation& formula,
+vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_I(TupleNotation& formula,
                                                     map<string, unsigned int>& eta,
                                                     unsigned int n) {
     vector<vector<int>> nonGateClauses;
@@ -53,18 +58,24 @@ vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_I(const TupleNotation& formula
             return BooleanCircuit::emptyFormula.getFormula();
         }
         clause = { "-" + x_i, "-" + s_ip_1 };
-        nonGateClauses.push_back(findClause(formula, clause, eta));
+        vector<int> foundClause = findClause(formula, clause, eta);
+        if (!foundClause.empty()) {
+            unsigned int nx_i;
+            nx_i = abs(foundClause.at(eta.find(s_ip_1)->second != (unsigned int)abs(foundClause.at(0)) ? 0 : 1));
+            eta.insert({ x_i, nx_i });
+            nonGateClauses.push_back(foundClause);
+        }
     }
     return nonGateClauses;
 }
 
-vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_II(const TupleNotation& formula,
+vector<vector<int>> findNonGateClausesOfLTSEQ_n_k_II(TupleNotation& formula,
                                                     map<string, unsigned int>& eta,
                                                     unsigned int n) {
     return {{ }};
 }
 
-StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(const BooleanCircuit& circuit) {
+StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(BooleanCircuit circuit) {
     map<string, unsigned int> eta;
     vector<GateVertex> gamma;
     unsigned int i = 1;
@@ -75,7 +86,9 @@ StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(const B
     GateVertex baseVertex = findFirstMatching(basePattern, circuit, eta);
     if (GateVertex::isNull(baseVertex)) return StructuralFormula::getEmptyStructuralFormula();
     gamma.push_back(baseVertex);
-
+    vector<int> baseClause = baseVertex.getFormula().clauseAt(0);
+    eta.insert({ x_i, abs(baseClause.at(0)) });
+    eta.insert({ s_i_1, abs(baseClause.at(1)) });
     i++;
     GateVertex& currentVertex = baseVertex;
     GateVertex null = BooleanCircuit::nullVertex;
@@ -92,19 +105,23 @@ StructuralFormula GraphBasedSequentialCounterRecognizer::recognizeLTSEQI(const B
             auto clause1 = gateFormula.clauseAt(0);
             auto clause2 = gateFormula.clauseAt(1);
             if (clause1.size() != 2 || clause2.size() != 2) continue;
-            if (!Unificator::isDefined(eta, clause1.at(0))) swap(clause1, clause2); // todo: does this swap work?
-            map<string, unsigned int> eta_1 = eta;
-            if (Unificator::unifyClauseL2({ "-" + s_im_1, s_i_1 }, clause1, eta)) {
-                if (Unificator::unifyClauseL2({"-" + x_i, s_i_1}, clause2, eta)) {
+            if (!Unificator::isDefined(eta, clause1.at(0))) swap(clause1, clause2);
+            vector<string> clause1Pattern = { "-" + s_im_1, s_i_1 };
+            if (Unificator::unifyClauseL2(clause1Pattern, clause1, eta)) {
+                eta.insert({ s_i_1, clause1.at(1) });
+                vector<string> clause2Pattern = {"-" + x_i, s_i_1};
+                if (Unificator::unifyClauseL2(clause2Pattern, clause2, eta)) {
+                    eta.insert({ x_i, abs(clause2.at(0)) });
+                    gamma.push_back(w);
                     stepVertex = w;
-                    gamma.push_back(stepVertex);
+                    currentVertex = stepVertex;
                     i++;
                     break;
+                } else {
+                    eta.erase(s_i_1); // todo: does this work as expected?
                 }
             }
-            eta = eta_1;
         }
-
     } while (!GateVertex::isNull(stepVertex));
     TupleNotation encoding(findNonGateClausesOfLTSEQ_n_k_I(circuit.getRemainder(), eta, i + 1)); // todo: is this the correct i?
     if (encoding.isEmpty()) gamma = { };

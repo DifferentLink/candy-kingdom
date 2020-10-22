@@ -6,7 +6,7 @@ add_library(gates OBJECT
     AIGProblem.h
     MiterDetector.h
     MiterDetector.cc
-    utilities/IOTools.h
+        utilities/SequentialCounterEncoder.h
     utilities/FormulaTools.cc
     utilities/FormulaTools.h
     algorithms/GateClassifier.cc
@@ -25,4 +25,4 @@ add_library(gates OBJECT
     datastructures/Signature.h
     datastructures/StructuralFormula.h
     datastructures/PermutationList.h
-    datastructures/BooleanCircuit.cc datastructures/TupleGate.h)
+    datastructures/BooleanCircuit.cc datastructures/TupleGate.h algorithms/ClassificationBasedRecognizer.cc algorithms/ClassificationBasedRecognizer.h)

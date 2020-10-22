@@ -28,14 +28,12 @@ public:
 
     static GateProblem gateProblemFromDIMACS(const string& filename);
 
-    static void writeToDIMACS(const TupleNotation& formula, const string& filename);
-
-    static void writeToDIMACS(const string &formula, const string &filename);
-
     template<typename T>
     static vector<T> unionOf(vector<vector<T>> disjunctSets);
 
-    static void writeStringToFile(const string& content, const string& filename);
+    static vector<Var> getRandomVariables(unsigned int amount, unsigned int start, unsigned int end);
+
+    static string asString(const vector<Var>& vector);
 };
 
 #endif //CANDY_FORMULATOOLS_H

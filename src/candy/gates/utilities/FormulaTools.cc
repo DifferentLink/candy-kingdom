@@ -43,3 +43,20 @@ vector<T> FormulaTools::unionOf(const vector<vector<T>> disjunctSets) {
     }
     return out;
 }
+
+vector<Var> FormulaTools::getRandomVariables(unsigned int amount, unsigned int start, unsigned int end) {
+    srand(amount);
+    set<Var> vars;
+    while (vars.size() < amount) {
+        vars.insert((rand() % (end + 1)) + start);
+    }
+
+    return vector<Var>(vars.begin(), vars.end());
+}
+
+string FormulaTools::asString(const vector<Var>& vector) {
+    string vars;
+    for (const auto& var : vector) vars.append(to_string(var) + ", ");
+    vars = vars.substr(0, vars.size() - 2);
+    return vars;
+}
