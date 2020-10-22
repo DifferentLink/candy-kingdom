@@ -4,7 +4,7 @@
 using namespace std;
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n2k1) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(2, {1, 2 }, 1);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(2, { 1, 2 }, 1);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -13,7 +13,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n2k1) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n3k1) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(3, {1, 2, 3 }, 1);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(3, { 1, 2, 3 }, 1);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -22,7 +22,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n3k1) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n3k2) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(3, {1, 2, 3 }, 2);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(3, { 1, 2, 3 }, 2);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -31,7 +31,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n3k2) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k1) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, {1, 2, 3, 4 }, 1);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, { 1, 2, 3, 4 }, 1);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -40,7 +40,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k1) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k2) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, {1, 2, 3, 4 }, 2);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, { 1, 2, 3, 4 }, 2);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -49,7 +49,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k2) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k3) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, {1, 2, 3, 4 }, 2);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(4, { 1, 2, 3, 4 }, 2);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -58,7 +58,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n4k3) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k1) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, {1, 2, 3, 4, 5 }, 1);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, { 1, 2, 3, 4, 5 }, 1);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -67,7 +67,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k1) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k2) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, {1, 2, 3, 4, 5 }, 2);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, { 1, 2, 3, 4, 5 }, 2);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -76,7 +76,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k2) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k3) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, {1, 2, 3, 4, 5 }, 3);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, { 1, 2, 3, 4, 5 }, 3);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -85,7 +85,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k3) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n5k4) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, {1, 2, 3, 4, 5 }, 4);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(5, { 1, 2, 3, 4, 5 }, 4);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -103,7 +103,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k1) {
 }
 
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k2) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, {1, 2, 3, 4, 5, 6 }, 2);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, { 1, 2, 3, 4, 5, 6 }, 2);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -111,7 +111,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k2) {
     ASSERT_TRUE(result.getCircuit().size() == 8);
 }
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k3) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, {1, 2, 3, 4, 5, 6 }, 3);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, { 1, 2, 3, 4, 5, 6 }, 3);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -119,7 +119,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k3) {
     ASSERT_TRUE(result.getCircuit().size() == 11);
 }
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k4) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, {1, 2, 3, 4, 5, 6 }, 4);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, { 1, 2, 3, 4, 5, 6 }, 4);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();
@@ -127,7 +127,7 @@ TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k4) {
     ASSERT_TRUE(result.getCircuit().size() == 14);
 }
 TEST(ClassificationBasedRecognizerTest, combinedRecognition_n6k5) {
-    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, {1, 2, 3, 4, 5, 6 }, 5);
+    const string &atMostSeq = SequentialCounterEncoder::atMostSEQ(6, { 1, 2, 3, 4, 5, 6 }, 5);
     BooleanCircuit seqCounterCircuit(atMostSeq);
     ClassificationBasedRecognizer recognizer(seqCounterCircuit);
     StructuralFormula result = recognizer.recognize();

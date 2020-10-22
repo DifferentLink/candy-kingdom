@@ -15,9 +15,7 @@ add_library(gates OBJECT
     algorithms/BooleanCircuitVisualizer.h
     algorithms/Unificator.cc
     algorithms/Unificator.h
-    algorithms/GraphBasedSequentialCounterRecognizer.cc
-    algorithms/GraphBasedSequentialCounterRecognizer.h
-    algorithms/SyntacticalSequentialCounterRecognizer.cc
+        algorithms/SyntacticalSequentialCounterRecognizer.cc
     algorithms/SyntacticalSequentialCounterRecognizer.h
     datastructures/TupleNotation.h
     datastructures/BooleanCircuit.h

@@ -7,8 +7,7 @@ add_executable(gates_tests
     algorithms/UnificatorTest.cc
     datastructures/SignatureTest.cc
     datastructures/TupleNotationTest.cc
-    algorithms/GraphBasedSequentialCounterRecognizerTest.cc
-    datastructures/BooleanCircuitTest.cc
+        datastructures/BooleanCircuitTest.cc
     algorithms/BooleanCircuitVisualizerTest.cc
     algorithms/ConstraintEncoderTest.cc
     algorithms/ClassificationBasedRecognizerTest.cc
